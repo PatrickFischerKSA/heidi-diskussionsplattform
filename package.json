@@ -8,9 +8,11 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "build:pages": "GITHUB_PAGES=true vinext build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "test": "node --test tests/content.test.mjs"
+    "test": "node --test tests/content.test.mjs",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -27,6 +29,8 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
+    "drizzle-kit": "0.31.10",
+    "drizzle-orm": "0.45.2",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.6",

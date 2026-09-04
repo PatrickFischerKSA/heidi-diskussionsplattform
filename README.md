@@ -10,7 +10,8 @@ Eine interaktive, textnahe Diskussionsplattform zu Johanna Spyris *Heidi* für d
 - vier Diskussionsmodi mit pausierbarem Timer
 - Figurenfokus zu Dete und Almöhi sowie Glossar heutiger Analysebegriffe
 - lokaler Lehrpersonenbereich mit Zusatzfrage, Rollenzuteilung und Beobachtungsbogen
-- lokale Speicherung ohne Login oder Backend
+- automatische lokale Speicherung ohne Login
+- optionaler Cloud-Lernraum auf Cloudflare D1 für Lernstände und Beiträge
 - Druckansicht sowie Export als Markdown und JSON
 - zweiter Modus «Heidi · Clara · Peter»: ein verzweigter Austausch aus Briefen und abspielbaren Sprachnachrichten
 - «Fadenspiel» als erzählerische Moderation: Nachklänge aus den Nachrichten öffnen neue Themen, Grossmamas Fadenbriefe verbinden sie
@@ -35,23 +36,39 @@ npm run lint
 npm run build
 ```
 
-Der statische Build liegt in `out/`.
+Der reguläre Build enthält die Cloudflare-API. Der separate Pages-Build liegt in `out/`:
+
+```bash
+npm run build:pages
+```
 
 ## GitHub Pages
 
-Der Workflow `.github/workflows/deploy-pages.yml` baut und veröffentlicht die Seite bei jedem Push auf `main`. In den Repository-Einstellungen unter **Pages → Source** muss **GitHub Actions** gewählt sein.
+Der Workflow `.github/workflows/deploy-pages.yml` baut und veröffentlicht die Seite bei jedem Push auf `main`. In den Repository-Einstellungen unter **Pages → Source** muss **GitHub Actions** gewählt sein. Das statische Frontend verwendet die öffentliche Denkraum-API als sichere Brücke zur Cloudflare-Datenbank; die Datenbank selbst ist nie direkt aus dem Browser erreichbar.
 
 Der Unterpfad wird automatisch aus dem Repository-Namen gesetzt. Für einen manuellen Build unter einem Unterpfad:
 
 ```bash
-BASE_PATH=/repository-name npm run build
+BASE_PATH=/repository-name \
+NEXT_PUBLIC_API_BASE_URL=https://denkraum-heidi.patrickoliverfischer.chatgpt.site \
+npm run build:pages
 ```
 
 Für eine Root-Domain bleibt `BASE_PATH` leer.
 
+## Cloudflare D1
+
+Die Sites-Konfiguration bindet D1 unter `DB` ein. Das Schema liegt in `db/schema.ts`, die generierte Migration unter `drizzle/`.
+
+```bash
+npm run db:generate
+```
+
+Die API unter `/api/learning-room` erstellt geschützte Lernräume, synchronisiert die beiden Lernmodi und speichert Beiträge. Jeder Raum erhält eine zufällige Raum-ID und einen 192-Bit-Zugangsschlüssel. In D1 wird nur dessen SHA-256-Prüfwert gespeichert. Abfragen verwenden gebundene Parameter; Eingaben und Nutzlastgrössen werden serverseitig begrenzt.
+
 ## Datenschutz und Speicherung
 
-Alle Arbeitsstände werden ausschliesslich im Browser (`localStorage`) gespeichert. Der Lehrpersonenbereich ist organisatorisch getrennt, aber nicht zugangsgeschützt. Es werden keine Daten an einen Server übertragen.
+Arbeitsstände werden zunächst im Browser (`localStorage`) gespeichert. Cloud-Synchronisierung ist optional und wird ausdrücklich ausgelöst. Sie benötigt weder Namen noch E-Mail-Adresse; für Beiträge genügt ein Kürzel. Raum-ID und Schlüssel bleiben lokal im Browser und sollten nicht öffentlich geteilt werden. Der Lehrpersonenbereich ist organisatorisch getrennt, aber nicht zugangsgeschützt.
 
 ## Textgrundlage
 

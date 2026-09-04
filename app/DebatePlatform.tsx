@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { glossary, modes, roles, topics } from './data';
 import CorrespondenceMode from './CorrespondenceMode';
+import CloudWorkspace from './CloudWorkspace';
 
 type Work = { position:number; reason:string; scene:string; observation:string; interpretation:string; pre:number; post:number; reflection:string; notes:string };
 const emptyWork = ():Work => ({position:50,reason:'',scene:'',observation:'',interpretation:'',pre:50,post:50,reflection:'',notes:''});
@@ -10,7 +11,7 @@ const safeStorage = { get:(key:string)=>{try{return localStorage.getItem(key)}ca
 
 export default function DebatePlatform() {
   const [active,setActive] = useState<number|null>(null);
-  const [panel,setPanel] = useState<'teacher'|'focus'|'glossary'|'letters'|null>(null);
+  const [panel,setPanel] = useState<'teacher'|'focus'|'glossary'|'letters'|'cloud'|null>(null);
   const [works,setWorks] = useState<Record<number,Work>>(()=>{const saved=safeStorage.get('denkraum-heidi-v2');if(!saved)return {};try{return JSON.parse(saved)}catch{return {}}});
   const [mode,setMode] = useState(0);
   const [seconds,setSeconds] = useState(modes[0].minutes*60);
@@ -46,7 +47,7 @@ export default function DebatePlatform() {
   return <main>
     <header className="topbar">
       <a className="brand" href="#start" aria-label="Denkraum Heidi – Startseite"><span className="brand-mark">H</span><span><b>Denkraum Heidi</b><small>Textnah diskutieren</small></span></a>
-      <nav aria-label="Hauptnavigation"><a href="#raeume">Diskussionsräume</a><button className="nav-plain" onClick={()=>setPanel('focus')}>Figurenfokus</button><button className="nav-plain" onClick={()=>setPanel('glossary')}>Glossar</button><button className="teacher-link" onClick={()=>setPanel('teacher')}>Für Lehrpersonen</button></nav>
+      <nav aria-label="Hauptnavigation"><a href="#raeume">Diskussionsräume</a><button className="nav-plain" onClick={()=>setPanel('focus')}>Figurenfokus</button><button className="nav-plain" onClick={()=>setPanel('glossary')}>Glossar</button><button className="cloud-link" onClick={()=>setPanel('cloud')}><i/>Cloud-Speicher</button><button className="teacher-link" onClick={()=>setPanel('teacher')}>Für Lehrpersonen</button></nav>
     </header>
     <section className="hero" id="start">
       <div className="eyebrow"><span/> Diskussionsplattform · Sekundarstufe II</div>
@@ -95,7 +96,8 @@ export default function DebatePlatform() {
     ].map(r=><div className="comparison-row" key={r[0]}>{r.map((c,i)=><span key={i}>{c}</span>)}</div>)}</div><h3>Offene Urteilsfragen</h3><ul className="judge-list">{['Ist Dete verantwortungslos, pragmatisch oder unter den Bedingungen ihrer Zeit beides?','Nutzt die Stelle in Frankfurt vor allem Heidi, Klara oder Dete?','Ist der Almöhi ein guter Lernbegleiter oder vernachlässigt er Pflichten?','Schützt sein Rückzug Heidi oder schliesst er sie von Bildung und Gesellschaft aus?','Warum kehrt der Almöhi später teilweise in die Gemeinschaft zurück?','Welche Entscheidung hätten beide gemeinsam mit Heidi treffen können?'].map(x=><li key={x}>{x}</li>)}</ul></SidePanel>}
     {panel==='glossary'&&<SidePanel title="Glossar" subtitle="Heutige Analysebegriffe – einfach erklärt" onClose={close}><p className="panel-note">Diese Begriffe helfen bei einer heutigen Deutung. Sie werden Johanna Spyri nicht ohne Beleg als Absicht zugeschrieben.</p><dl className="glossary">{glossary.map(([a,b])=><div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl></SidePanel>}
     {panel==='teacher'&&<SidePanel title="Lehrpersonenbereich" subtitle="Lokale Vorbereitung – kein geschützter Zugang" onClose={close}><p className="panel-note warning">Dieser Bereich ist nur organisatorisch getrennt und bietet keine echte Zugangssicherheit.</p><label>Eigene Leitfrage<textarea value={customQuestion} onChange={e=>setCustomQuestion(e.target.value)} placeholder="Zusätzliche Frage für die Lerngruppe …"/></label><label className="check"><input type="checkbox" checked={helpers} onChange={e=>setHelpers(e.target.checked)}/> Begriffshilfen für Lernende sichtbar</label><h3>Rollen zufällig zuteilen</h3><label>Namen, durch Komma oder Zeilenumbruch getrennt<textarea value={roleNames} onChange={e=>setRoleNames(e.target.value)} placeholder="Mira, Noah, Elif, Luca …"/></label><button className="primary-inline" onClick={assign}>Rollen verteilen</button>{assignments.length>0&&<ul className="assignments">{assignments.map(x=><li key={x}>{x}</li>)}</ul>}<h3>Beobachtungsbogen</h3><div className="rubric">{['Textnähe','Begründung','Reaktion auf Gegenargumente','Perspektivenübernahme','Gesprächsverhalten'].map(x=><label key={x}><span>{x}</span><select defaultValue=""><option value="">Beobachtung …</option><option>noch wenig sichtbar</option><option>teilweise sichtbar</option><option>klar sichtbar</option></select><input placeholder="Kurze Rückmeldung"/></label>)}</div><p className="panel-note">Keine automatische Notengebung. Rückmeldungen bleiben lokal auf diesem Gerät.</p></SidePanel>}
-    {panel==='letters'&&<CorrespondenceMode onClose={close}/>} 
+    {panel==='letters'&&<CorrespondenceMode onClose={close}/>}
+    {panel==='cloud'&&<CloudWorkspace works={works} onClose={close} onRestore={(debates,letters)=>{setWorks(debates as Record<number,Work>);try{localStorage.setItem('denkraum-heidi-v2',JSON.stringify(debates));localStorage.setItem('denkraum-faden-v2',JSON.stringify(letters))}catch{}}}/>}
   </main>;
 }
 
