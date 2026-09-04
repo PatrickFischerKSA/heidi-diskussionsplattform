@@ -12,6 +12,9 @@ Eine interaktive, textnahe Diskussionsplattform zu Johanna Spyris *Heidi* für d
 - lokaler Lehrpersonenbereich mit Zusatzfrage, Rollenzuteilung und Beobachtungsbogen
 - lokale Speicherung ohne Login oder Backend
 - Druckansicht sowie Export als Markdown und JSON
+- zweiter Modus «Heidi · Clara · Peter»: ein verzweigter Austausch aus Briefen und abspielbaren Sprachnachrichten
+- «Fadenspiel» als erzählerische Moderation: Nachklänge aus den Nachrichten öffnen neue Themen, Grossmamas Fadenbriefe verbinden sie
+- externe Reaktionen von Fräulein Rottenmeier, Dete, Herr Sesemann und Almöhi
 
 ## Lokal starten
 

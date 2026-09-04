@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { glossary, modes, roles, topics } from './data';
+import CorrespondenceMode from './CorrespondenceMode';
 
 type Work = { position:number; reason:string; scene:string; observation:string; interpretation:string; pre:number; post:number; reflection:string; notes:string };
 const emptyWork = ():Work => ({position:50,reason:'',scene:'',observation:'',interpretation:'',pre:50,post:50,reflection:'',notes:''});
@@ -9,7 +10,7 @@ const safeStorage = { get:(key:string)=>{try{return localStorage.getItem(key)}ca
 
 export default function DebatePlatform() {
   const [active,setActive] = useState<number|null>(null);
-  const [panel,setPanel] = useState<'teacher'|'focus'|'glossary'|null>(null);
+  const [panel,setPanel] = useState<'teacher'|'focus'|'glossary'|'letters'|null>(null);
   const [works,setWorks] = useState<Record<number,Work>>(()=>{const saved=safeStorage.get('denkraum-heidi-v2');if(!saved)return {};try{return JSON.parse(saved)}catch{return {}}});
   const [mode,setMode] = useState(0);
   const [seconds,setSeconds] = useState(modes[0].minutes*60);
@@ -58,6 +59,11 @@ export default function DebatePlatform() {
       <div className="section-heading"><div><span className="kicker">Sechs Konflikte</span><h2>Womit wollt ihr beginnen?</h2></div><p>Jeder Raum führt von einer ersten Position zu einem begründeten, differenzierten Urteil.</p></div>
       <div className="topic-grid">{topics.map(t=><article className={`topic-card tone-${t.id}`} key={t.id}><div className="card-top"><span className="topic-number">0{t.id}</span><span className="topic-area">{t.area}</span></div><h3>{t.title}</h3><blockquote>«{t.thesis}»</blockquote><div className="card-meta"><span>{t.figures.slice(0,3).join(' · ')}</span><span>{t.duration}</span></div><button onClick={()=>openTopic(t.id)} aria-label={`${t.title} öffnen`}>Raum öffnen <span>↗</span></button></article>)}</div>
     </section>
+    <section className="mode-two-teaser">
+      <div><span className="mode-index">Modus 02</span><span className="kicker">Post zwischen Alp und Frankfurt</span><h2>Heidi · Clara · Peter</h2><p>Ein Austausch in Briefen und Sprachnachrichten über das, was zwischen den Zeilen liegt.</p></div>
+      <div className="post-preview" aria-hidden="true"><span className="envelope">C</span><i/><span className="voice-wave">•••••••</span><i/><span className="envelope small">H</span></div>
+      <button onClick={()=>setPanel('letters')}>Fadenspiel beginnen <span>→</span></button>
+    </section>
     <section className="focus-teaser" id="figuren"><span className="focus-label">Querschnitt</span><div><p>Figurenfokus</p><h2>Dete und Almöhi:<br/>Wer sorgt wie für Heidi?</h2></div><p>Ein Vergleich ohne einfache Einteilung in «gut» und «böse».</p><button onClick={()=>setPanel('focus')}>Vergleich öffnen <span>→</span></button></section>
     <footer><span>Denkraum Heidi</span><p>Johanna Spyri · Erster und Zweiter Teil</p><button onClick={()=>setPanel('glossary')}>Begriffe nachschlagen</button></footer>
 
@@ -89,6 +95,7 @@ export default function DebatePlatform() {
     ].map(r=><div className="comparison-row" key={r[0]}>{r.map((c,i)=><span key={i}>{c}</span>)}</div>)}</div><h3>Offene Urteilsfragen</h3><ul className="judge-list">{['Ist Dete verantwortungslos, pragmatisch oder unter den Bedingungen ihrer Zeit beides?','Nutzt die Stelle in Frankfurt vor allem Heidi, Klara oder Dete?','Ist der Almöhi ein guter Lernbegleiter oder vernachlässigt er Pflichten?','Schützt sein Rückzug Heidi oder schliesst er sie von Bildung und Gesellschaft aus?','Warum kehrt der Almöhi später teilweise in die Gemeinschaft zurück?','Welche Entscheidung hätten beide gemeinsam mit Heidi treffen können?'].map(x=><li key={x}>{x}</li>)}</ul></SidePanel>}
     {panel==='glossary'&&<SidePanel title="Glossar" subtitle="Heutige Analysebegriffe – einfach erklärt" onClose={close}><p className="panel-note">Diese Begriffe helfen bei einer heutigen Deutung. Sie werden Johanna Spyri nicht ohne Beleg als Absicht zugeschrieben.</p><dl className="glossary">{glossary.map(([a,b])=><div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl></SidePanel>}
     {panel==='teacher'&&<SidePanel title="Lehrpersonenbereich" subtitle="Lokale Vorbereitung – kein geschützter Zugang" onClose={close}><p className="panel-note warning">Dieser Bereich ist nur organisatorisch getrennt und bietet keine echte Zugangssicherheit.</p><label>Eigene Leitfrage<textarea value={customQuestion} onChange={e=>setCustomQuestion(e.target.value)} placeholder="Zusätzliche Frage für die Lerngruppe …"/></label><label className="check"><input type="checkbox" checked={helpers} onChange={e=>setHelpers(e.target.checked)}/> Begriffshilfen für Lernende sichtbar</label><h3>Rollen zufällig zuteilen</h3><label>Namen, durch Komma oder Zeilenumbruch getrennt<textarea value={roleNames} onChange={e=>setRoleNames(e.target.value)} placeholder="Mira, Noah, Elif, Luca …"/></label><button className="primary-inline" onClick={assign}>Rollen verteilen</button>{assignments.length>0&&<ul className="assignments">{assignments.map(x=><li key={x}>{x}</li>)}</ul>}<h3>Beobachtungsbogen</h3><div className="rubric">{['Textnähe','Begründung','Reaktion auf Gegenargumente','Perspektivenübernahme','Gesprächsverhalten'].map(x=><label key={x}><span>{x}</span><select defaultValue=""><option value="">Beobachtung …</option><option>noch wenig sichtbar</option><option>teilweise sichtbar</option><option>klar sichtbar</option></select><input placeholder="Kurze Rückmeldung"/></label>)}</div><p className="panel-note">Keine automatische Notengebung. Rückmeldungen bleiben lokal auf diesem Gerät.</p></SidePanel>}
+    {panel==='letters'&&<CorrespondenceMode onClose={close}/>} 
   </main>;
 }
 
