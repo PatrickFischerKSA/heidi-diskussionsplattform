@@ -5,7 +5,6 @@ import test from 'node:test';
 const data = await readFile(new URL('../app/data.ts', import.meta.url), 'utf8');
 const app = await readFile(new URL('../app/DebatePlatform.tsx', import.meta.url), 'utf8');
 const letters = await readFile(new URL('../app/CorrespondenceMode.tsx', import.meta.url), 'utf8');
-const letterData = await readFile(new URL('../app/correspondenceData.ts', import.meta.url), 'utf8');
 const cloud = await readFile(new URL('../app/CloudWorkspace.tsx', import.meta.url), 'utf8');
 const route = await readFile(new URL('../app/api/learning-room/route.ts', import.meta.url), 'utf8');
 const hosting = JSON.parse(await readFile(new URL('../.openai/hosting.json', import.meta.url), 'utf8'));
@@ -26,23 +25,27 @@ test('verwendet Schweizer Rechtschreibung in zentralen UI-Texten', () => {
   assert.ok(app.includes('schliessen') || app.includes('Schliessen'));
 });
 
-test('zweiter Modus verbindet Figuren, Formate und Themen', () => {
+test('zweiter Modus besteht aus Beiträgen der Schüler*innen', () => {
   for (const figure of ['Heidi', 'Clara', 'Peter', 'Grossmama', 'Fräulein Rottenmeier', 'Dete', 'Herr Sesemann', 'Almöhi']) {
-    assert.ok(letterData.includes(figure), `Figur fehlt: ${figure}`);
+    assert.ok((letters + route).includes(figure), `Figur fehlt: ${figure}`);
   }
   for (const theme of ['Freundschaft', 'Eifersucht', 'Tiere', 'Bildung', 'Behinderung', 'Natur']) {
-    assert.ok(letterData.includes(theme), `Thema fehlt: ${theme}`);
+    assert.ok(route.includes(theme), `Thema fehlt: ${theme}`);
   }
   assert.ok(letters.includes('speechSynthesis'));
-  assert.ok(letters.includes('Was klingt nach?'));
+  assert.ok(letters.includes('Eigener Beitrag'));
+  assert.ok(letters.includes('keine Aufgabe, keine Bewertung, keine Aufforderung'));
+  assert.ok(route.includes("payload.action==='correspond'"));
+  assert.ok(route.includes("amount%3===0"));
 });
 
 test('Cloud-Lernraum speichert Lernstände und Beiträge geschützt', () => {
   assert.equal(hosting.d1, 'DB');
   assert.ok(cloud.includes('Jetzt synchronisieren'));
-  assert.ok(cloud.includes('Kürzel statt eines vollständigen Namens'));
+  assert.ok(letters.includes('Kürzel'));
   assert.ok(route.includes("crypto.subtle.digest('SHA-256'"));
   assert.ok(route.includes("Authorization"));
   assert.ok(route.includes('.bind('));
   assert.ok(route.includes("allowedScopes = new Set(['debates','letters'])"));
+  assert.ok(route.includes('correspondence_messages'));
 });

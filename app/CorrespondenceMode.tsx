@@ -1,101 +1,80 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Message, openingEchoes, openingMessages, threadThemes } from './correspondenceData';
+import { useEffect, useMemo, useState } from 'react';
+import { addCorrespondenceMessage, CloudCredentials, CorrespondenceMessage, createCloudRoom, getCloudCredentials, loadCloudRoom, setCloudCredentials } from './cloud';
 
-const themeOrder = ['freundschaft','eifersucht','tiere','bildung','behinderung','natur','ungleichheit','zugehoerigkeit','verantwortung'];
+type StudentCharacter='Clara'|'Heidi'|'Peter';
+type Channel='letter'|'voice';
+const formats:Record<StudentCharacter,Channel[]>={Clara:['letter'],Heidi:['letter','voice'],Peter:['voice']};
+const labels:Record<Channel,string>={letter:'Brief',voice:'Sprachnachricht'};
 
-export default function CorrespondenceMode({onClose}:{onClose:()=>void}) {
-  const [trail,setTrail] = useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem('denkraum-faden-v2')||'[]')}catch{return []}});
-  const [playing,setPlaying] = useState<string|null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
-  const messages = useMemo(()=>[...openingMessages,...trail.flatMap(key=>threadThemes[key]?.messages||[])],[trail]);
-  const choices = useMemo(()=>{
-    const source = trail.length ? threadThemes[trail.at(-1)!].echoes : openingEchoes;
-    const fresh = source.filter(e=>!trail.includes(e.next));
-    if(fresh.length)return fresh;
-    return themeOrder.filter(key=>!trail.includes(key)).slice(0,3).map(key=>({label:threadThemes[key].name,next:key}));
-  },[trail]);
+export default function CorrespondenceMode({onClose}:{onClose:()=>void}){
+  const [credentials,setCredentials]=useState<CloudCredentials|null>(()=>getCloudCredentials());
+  const [messages,setMessages]=useState<CorrespondenceMessage[]>([]);
+  const [alias,setAlias]=useState('');
+  const [character,setCharacter]=useState<StudentCharacter>('Heidi');
+  const [channel,setChannel]=useState<Channel>('voice');
+  const [body,setBody]=useState('');
+  const [status,setStatus]=useState(credentials?'Der Posttisch verbindet sich …':'Dieser Posttisch hat noch keine gemeinsame Adresse.');
+  const [busy,setBusy]=useState(false);
+  const [playing,setPlaying]=useState<string|null>(null);
 
-  useEffect(()=>{try{localStorage.setItem('denkraum-faden-v2',JSON.stringify(trail))}catch{}},[trail]);
-  useEffect(()=>()=>{if('speechSynthesis' in window)window.speechSynthesis.cancel()},[]);
+  useEffect(()=>{
+    if(!credentials)return;
+    let active=true;
+    const pull=()=>loadCloudRoom(credentials).then(data=>{if(active){setMessages(data.correspondence||[]);setStatus('Neue Post erscheint hier von selbst.')}}).catch(()=>{if(active)setStatus('Die gemeinsame Post ist gerade nicht erreichbar.')});
+    pull(); const interval=window.setInterval(pull,7000);
+    return()=>{active=false;window.clearInterval(interval)};
+  },[credentials]);
+  useEffect(()=>()=>window.speechSynthesis?.cancel(),[]);
 
-  const choose=(key:string)=>{
-    if(trail.includes(key))return;
-    setTrail(items=>[...items,key]);
-    window.setTimeout(()=>endRef.current?.scrollIntoView({behavior:'smooth',block:'end'}),80);
+  const themes=useMemo(()=>[...new Set(messages.filter(item=>item.kind==='student').map(item=>item.topic))],[messages]);
+  const studentCount=messages.filter(item=>item.kind==='student').length;
+  const chooseCharacter=(next:StudentCharacter)=>{setCharacter(next);if(!formats[next].includes(channel))setChannel(formats[next][0])};
+  const append=(items:CorrespondenceMessage[])=>setMessages(current=>[...new Map([...current,...items].map(item=>[item.id,item])).values()].sort((a,b)=>a.createdAt.localeCompare(b.createdAt)));
+
+  const submit=async()=>{
+    if(!credentials||!alias.trim()||body.trim().length<3)return;
+    setBusy(true);
+    try{
+      const result=await addCorrespondenceMessage(credentials,{alias,character,channel,body});
+      append([result.message,...(result.reaction?[result.reaction]:[])]);
+      setBody(''); setStatus(result.reaction?'Eine Randstimme hat einen neuen Faden sichtbar gemacht.':'Nachricht ist am gemeinsamen Posttisch angekommen.');
+    }catch(error){setStatus(error instanceof Error?error.message:'Die Nachricht konnte nicht ankommen.')}finally{setBusy(false)}
   };
-  const speak=(message:Message)=>{
-    if(!('speechSynthesis' in window))return;
+  const speak=(message:CorrespondenceMessage)=>{
+    if(message.channel!=='voice'||!('speechSynthesis' in window))return;
     window.speechSynthesis.cancel();
     if(playing===message.id){setPlaying(null);return}
-    const utterance=new SpeechSynthesisUtterance(message.text);
-    utterance.lang='de-CH';
-    utterance.rate=message.from==='Peter'?.92:message.adult?.86:.9;
-    utterance.pitch=message.from==='Peter'?.86:message.from==='Heidi'?1.1:1;
-    utterance.onend=()=>setPlaying(null);
-    utterance.onerror=()=>setPlaying(null);
-    setPlaying(message.id);
-    window.speechSynthesis.speak(utterance);
+    const utterance=new SpeechSynthesisUtterance(message.body); utterance.lang='de-CH'; utterance.rate=message.character==='Peter'?.92:message.character==='Heidi'?1.02:.88; utterance.pitch=message.character==='Peter'?.86:message.character==='Heidi'?1.08:.95;
+    utterance.onend=()=>setPlaying(null);utterance.onerror=()=>setPlaying(null);setPlaying(message.id);window.speechSynthesis.speak(utterance);
   };
-  const restart=()=>{if(window.confirm('Den bisherigen Gesprächsfaden lösen und neu beginnen?')){window.speechSynthesis?.cancel();setPlaying(null);setTrail([])}};
 
-  return <div className="modal-backdrop correspondence-backdrop" role="dialog" aria-modal="true" aria-label="Heidi, Clara und Peter – ein Austausch">
-    <section className="correspondence-shell">
-      <header className="correspondence-head">
-        <button onClick={onClose}>← Zurück</button>
-        <div><small>Modus 02 · Fadenspiel</small><b>Heidi · Clara · Peter</b></div>
-        <span>{trail.length} Fäden aufgenommen</span>
-      </header>
-      <div className="correspondence-intro">
-        <span className="kicker">Ein Austausch in Briefen und Sprachnachrichten</span>
-        <h2>Welcher Faden<br/><em>klingt weiter?</em></h2>
-        <p>Worte hinterlassen Spuren. Ein nachklingender Satz entscheidet, welche Post als Nächstes zwischen Alp und Frankfurt unterwegs ist.</p>
-        <div className="format-key"><span><i className="dot clara"/> Clara schreibt</span><span><i className="dot heidi"/> Heidi schreibt & spricht</span><span><i className="dot peter"/> Peter spricht</span></div>
+  return <div className="modal-backdrop correspondence-backdrop" role="dialog" aria-modal="true" aria-label="Heidi, Clara und Peter – gemeinsamer Austausch"><section className="correspondence-shell">
+    <header className="correspondence-head"><button onClick={onClose}>← Zurück</button><div><small>Modus 02 · gemeinsamer Posttisch</small><b>Heidi · Clara · Peter</b></div><span>{studentCount} eigene Stimmen</span></header>
+    <div className="correspondence-intro student-led"><span className="kicker">Briefe und Sprachnachrichten der Schüler*innen</span><h2>Die Figuren warten<br/><em>auf eure Stimmen.</em></h2><p>Hier sprechen nicht fertige Texte für Heidi, Clara und Peter. Der Austausch entsteht erst aus den Nachrichten im Lernraum.</p><div className="format-key"><span><i className="dot clara"/> Clara schreibt</span><span><i className="dot heidi"/> Heidi schreibt & spricht</span><span><i className="dot peter"/> Peter spricht</span></div></div>
+
+    {!credentials?<RoomGate onConnected={next=>{setCredentials(next);setStatus('Der gemeinsame Posttisch ist geöffnet.')}}/>:<div className="correspondence-workbench">
+      <aside className="thread-map live-map"><small>Was im Gewebe auftaucht</small><div className="spool" aria-hidden="true"><i/><i/><i/></div>{themes.length?<div className="theme-weave">{themes.map(theme=><span key={theme}>{theme}</span>)}</div>:<p>Noch ist kein Themenfaden sichtbar.</p>}<div className="live-room"><i/><span>{credentials.label}<small>{status}</small></span></div></aside>
+
+      <div className="message-stream student-stream">
+        <div className="moderation-contract"><span>Der Faden hört leise mit</span><p>Nach mehreren Nachrichten kann eine Randstimme auftauchen. Sie verbindet nur Gedankenfelder: keine Aufgabe, keine Bewertung, keine Aufforderung.</p></div>
+        {messages.length===0?<div className="empty-post-table"><span>Der Posttisch ist leer.</span><p>Die erste sichtbare Stimme wird die einer Schüler*in sein.</p></div>:messages.map((message,index)=><StudentMessage key={message.id} message={message} index={index} playing={playing===message.id} onPlay={()=>speak(message)}/>)}
+
+        <section className="student-composer" aria-label="Eigene Nachricht verfassen"><header><div><small>Eigener Beitrag</small><h3>Eine Figurenstimme entsteht</h3></div><span>{body.length}/1600</span></header><div className="composer-identity"><label>Kürzel<input value={alias} maxLength={32} onChange={event=>setAlias(event.target.value)} placeholder="z. B. L7"/></label><fieldset><legend>Figurenstimme</legend><div>{(['Clara','Heidi','Peter'] as StudentCharacter[]).map(item=><button type="button" className={character===item?'active':''} onClick={()=>chooseCharacter(item)} key={item}>{item}</button>)}</div></fieldset><fieldset><legend>Form</legend><div>{formats[character].map(item=><button type="button" className={channel===item?'active':''} onClick={()=>setChannel(item)} key={item}>{labels[item]}</button>)}</div></fieldset></div><label>{channel==='letter'?'Brieftext':'Gesprochener Text'}<textarea value={body} maxLength={1600} onChange={event=>setBody(event.target.value)} placeholder={`${labels[channel]} als ${character}`}/></label>{channel==='voice'&&<p className="voice-privacy">Die Stimme entsteht erst beim Abspielen im Browser. Es wird keine Schüler*innenstimme aufgenommen.</p>}<div className="composer-send"><span>{status}</span><button onClick={submit} disabled={busy||!alias.trim()||body.trim().length<3}>{busy?'Unterwegs …':'In den Postlauf geben'} <b>→</b></button></div></section>
       </div>
-
-      <div className="correspondence-layout">
-        <aside className="thread-map">
-          <small>Die Fadenspule</small>
-          <div className="spool" aria-hidden="true"><i/><i/><i/></div>
-          <ol>{themeOrder.map(key=><li className={trail.includes(key)?'visited':''} key={key}><span>{trail.includes(key)?'●':'○'}</span>{threadThemes[key].name}</li>)}</ol>
-          <p>Kein Weg ist vollständig. Das sichtbare Geflecht entsteht aus den Worten, die weitergetragen werden.</p>
-        </aside>
-
-        <div className="message-stream">
-          <div className="fiction-note">Fiktive Fortschreibung auf Grundlage der Figuren und Konflikte des Romans – keine Originalzitate.</div>
-          {messages.map((message,index)=><MessageCard key={message.id} message={message} index={index} playing={playing===message.id} onPlay={()=>speak(message)}/>)}
-
-          {choices.length>0 ? <div className="echo-choice">
-            <div className="echo-orbit" aria-hidden="true"><span/><i/><span/></div>
-            <small>Was klingt nach?</small>
-            <p>Ein Echo nimmt den Gesprächsfaden auf. Dahinter wartet bereits neue Post.</p>
-            <div>{choices.map(choice=><button onClick={()=>choose(choice.next)} key={choice.next}>{choice.label}<span>↗</span></button>)}</div>
-          </div> : <div className="woven-ending">
-            <small>Grossmamas letzter Fadenbrief</small>
-            <p>Ihr habt nicht alles geklärt. Das ist kein Mangel. Ein Gespräch wird lebendig, wenn nach dem letzten Wort noch Beziehungen zwischen den Fragen sichtbar bleiben.</p>
-            <div className="constellation">{trail.map((key,i)=><span style={{'--i':i} as React.CSSProperties} key={key}>{threadThemes[key].name}</span>)}</div>
-          </div>}
-          <div ref={endRef}/>
-          {trail.length>0&&<button className="restart-thread" onClick={restart}>Faden lösen und neu beginnen</button>}
-        </div>
-      </div>
-    </section>
-  </div>
+    </div>}
+  </section></div>
 }
 
-function MessageCard({message,index,playing,onPlay}:{message:Message;index:number;playing:boolean;onPlay:()=>void}){
-  const isLetter=message.channel==='letter';
-  return <article className={`${isLetter?'letter-message':'voice-message'} ${message.adult?'adult-reaction':''} from-${message.from.toLowerCase().replaceAll('ä','a').replaceAll('ö','o').replaceAll('ü','u').replaceAll(' ','-')}`}>
-    <div className="message-route"><span>{message.place}</span><i/><span>{String(index+1).padStart(2,'0')}</span></div>
-    {isLetter ? <>
-      <div className="letter-fold" aria-hidden="true"/>
-      <header><small>{message.meta}</small>{message.adult&&<b>Stimme von aussen</b>}</header>
-      <p>{message.text}</p>
-      <span className="signature">{message.from}</span>
-    </> : <>
-      <div className="voice-player"><button className={playing?'playing':''} onClick={onPlay} aria-label={`${message.from}s Sprachnachricht ${playing?'stoppen':'abspielen'}`}>{playing?'■':'▶'}</button><div><header><b>{message.from}</b>{message.adult&&<em>Stimme von aussen</em>}<small>{message.meta}</small></header><div className="waveform" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{height:`${8+((i*7)%19)}px`}}/>)}</div></div></div>
-      <details><summary>Mitlesen</summary><p>{message.text}</p></details>
-    </>}
-  </article>
+function RoomGate({onConnected}:{onConnected:(credentials:CloudCredentials)=>void}){
+  const [roomId,setRoomId]=useState('');const [secret,setSecret]=useState('');const [label,setLabel]=useState('Heidi-Posttisch');const [busy,setBusy]=useState(false);const [notice,setNotice]=useState('Raum-ID und Schlüssel verbinden mehrere Geräte mit derselben Post.');
+  const create=async()=>{setBusy(true);try{const next=await createCloudRoom(label);onConnected(next)}catch(error){setNotice(error instanceof Error?error.message:'Die Adresse konnte nicht entstehen.')}finally{setBusy(false)}};
+  const join=async()=>{setBusy(true);try{const next={roomId:roomId.trim(),secret:secret.trim(),label:'Gemeinsamer Posttisch'};const data=await loadCloudRoom(next);next.label=data.room.label;setCloudCredentials(next);onConnected(next)}catch(error){setNotice(error instanceof Error?error.message:'Diese Adresse liess sich nicht öffnen.')}finally{setBusy(false)}};
+  return <div className="post-address"><div><small>Neue gemeinsame Adresse</small><h3>{label}</h3><label>Bezeichnung<input value={label} maxLength={80} onChange={event=>setLabel(event.target.value)}/></label><button onClick={create} disabled={busy}>Posttisch eröffnen</button></div><div><small>Vorhandene Adresse</small><h3>Posttisch wiederfinden</h3><label>Raum-ID<input value={roomId} onChange={event=>setRoomId(event.target.value)}/></label><label>Zugangsschlüssel<input type="password" value={secret} onChange={event=>setSecret(event.target.value)}/></label><button onClick={join} disabled={busy||!roomId.trim()||!secret.trim()}>Adresse öffnen</button></div><p>{notice}</p></div>
+}
+
+function StudentMessage({message,index,playing,onPlay}:{message:CorrespondenceMessage;index:number;playing:boolean;onPlay:()=>void}){
+  const isLetter=message.channel==='letter';const isReaction=message.kind==='reaction';const className=`${isLetter?'letter-message':'voice-message'} ${isReaction?'adult-reaction thread-resonance':''} from-${message.character.toLowerCase().replaceAll('ä','a').replaceAll('ö','o').replaceAll('ü','u').replaceAll(' ','-')}`;
+  return <article className={className}><div className="message-route"><span>{isReaction?'Rand':'Post'}</span><i/><span>{String(index+1).padStart(2,'0')}</span></div>{isLetter?<><div className="letter-fold" aria-hidden="true"/><header><small>{isReaction?'Diskrete Resonanz':`${message.alias} · eigener Brief`}</small><b>{message.topic}</b></header><p>{message.body}</p><span className="signature">{message.character}</span></>:<><div className="voice-player"><button className={playing?'playing':''} onClick={onPlay} aria-label={`${message.character}s Sprachnachricht ${playing?'stoppen':'abspielen'}`}>{playing?'■':'▶'}</button><div><header><b>{message.character}</b><em>{isReaction?'Diskrete Resonanz':message.alias}</em><small>{message.topic}</small></header><div className="waveform" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{height:`${8+((i*7)%19)}px`}}/>)}</div></div></div><details><summary>Mitlesen</summary><p>{message.body}</p></details></>}</article>
 }

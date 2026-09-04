@@ -13,9 +13,10 @@ Eine interaktive, textnahe Diskussionsplattform zu Johanna Spyris *Heidi* für d
 - automatische lokale Speicherung ohne Login
 - optionaler Cloud-Lernraum auf Cloudflare D1 für Lernstände und Beiträge
 - Druckansicht sowie Export als Markdown und JSON
-- zweiter Modus «Heidi · Clara · Peter»: ein verzweigter Austausch aus Briefen und abspielbaren Sprachnachrichten
-- «Fadenspiel» als erzählerische Moderation: Nachklänge aus den Nachrichten öffnen neue Themen, Grossmamas Fadenbriefe verbinden sie
-- externe Reaktionen von Fräulein Rottenmeier, Dete, Herr Sesemann und Almöhi
+- zweiter Modus «Heidi · Clara · Peter»: Schüler*innen verfassen sämtliche Briefe und Sprachnachrichten selbst
+- Clara schreibt, Peter spricht, Heidi kann beide Formen verwenden; Sprachnachrichten werden datensparsam aus dem selbst verfassten Text vorgelesen
+- «Der Faden hört leise mit»: Nach jeweils drei Beiträgen verbindet eine knappe Randstimme zwei Themen, ohne Frage, Auftrag, Bewertung oder Aufforderung
+- diskrete Reaktionen von Grossmama, Fräulein Rottenmeier, Dete, Herr Sesemann und Almöhi; Grossmama trägt die meisten Verbindungen
 
 ## Lokal starten
 
@@ -64,7 +65,7 @@ Die Sites-Konfiguration bindet D1 unter `DB` ein. Das Schema liegt in `db/schema
 npm run db:generate
 ```
 
-Die API unter `/api/learning-room` erstellt geschützte Lernräume, synchronisiert die beiden Lernmodi und speichert Beiträge. Jeder Raum erhält eine zufällige Raum-ID und einen 192-Bit-Zugangsschlüssel. In D1 wird nur dessen SHA-256-Prüfwert gespeichert. Abfragen verwenden gebundene Parameter; Eingaben und Nutzlastgrössen werden serverseitig begrenzt.
+Die API unter `/api/learning-room` erstellt geschützte Lernräume, synchronisiert Lernstände und speichert die von Schüler*innen verfasste Figurenpost in `correspondence_messages`. Jeder Raum erhält eine zufällige Raum-ID und einen 192-Bit-Zugangsschlüssel. In D1 wird nur dessen SHA-256-Prüfwert gespeichert. Abfragen verwenden gebundene Parameter; Figurenformate, Eingaben und Nutzlastgrössen werden serverseitig geprüft.
 
 ## Datenschutz und Speicherung
 

@@ -27,3 +27,18 @@ export const contributions = sqliteTable('contributions', {
   body: text('body').notNull(),
   createdAt: text('created_at').notNull(),
 }, table => [index('idx_contributions_room_created').on(table.roomId,table.createdAt)]);
+
+export const correspondenceMessages = sqliteTable('correspondence_messages', {
+  id: text('id').primaryKey(),
+  roomId: text('room_id').notNull().references(()=>learningRooms.id,{onDelete:'cascade'}),
+  messageKind: text('message_kind').notNull(),
+  alias: text('alias').notNull(),
+  character: text('character').notNull(),
+  channel: text('channel').notNull(),
+  topic: text('topic').notNull(),
+  body: text('body').notNull(),
+  createdAt: text('created_at').notNull(),
+}, table => [
+  index('idx_correspondence_room_created').on(table.roomId,table.createdAt),
+  index('idx_correspondence_room_kind_created').on(table.roomId,table.messageKind,table.createdAt),
+]);

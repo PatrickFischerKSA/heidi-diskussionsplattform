@@ -2,7 +2,8 @@
 
 export type CloudCredentials={roomId:string;secret:string;label:string};
 export type CloudContribution={id:string;alias:string;topic:string;body:string;createdAt:string};
-export type CloudRoomData={room:{id:string;label:string;updatedAt:string};states:Record<string,{data:unknown;updatedAt:string}>;contributions:CloudContribution[]};
+export type CorrespondenceMessage={id:string;kind:'student'|'reaction';alias:string;character:string;channel:'letter'|'voice';topic:string;body:string;createdAt:string};
+export type CloudRoomData={room:{id:string;label:string;updatedAt:string};states:Record<string,{data:unknown;updatedAt:string}>;contributions:CloudContribution[];correspondence:CorrespondenceMessage[]};
 
 const KEY='denkraum-cloud-room-v1';
 const base=(process.env.NEXT_PUBLIC_API_BASE_URL||'').replace(/\/$/,'');
@@ -20,3 +21,4 @@ export async function createCloudRoom(label:string){
 export async function loadCloudRoom(credentials:CloudCredentials):Promise<CloudRoomData>{return parse(await fetch(endpoint(credentials.roomId),{headers:headers(credentials.secret),cache:'no-store'}))}
 export async function saveCloudState(credentials:CloudCredentials,scope:'debates'|'letters',data:unknown){return parse(await fetch(endpoint(credentials.roomId),{method:'PUT',headers:headers(credentials.secret),body:JSON.stringify({scope,data})}))}
 export async function addCloudContribution(credentials:CloudCredentials,input:{alias:string;topic:string;body:string}){return parse(await fetch(endpoint(credentials.roomId),{method:'POST',headers:headers(credentials.secret),body:JSON.stringify({action:'contribute',...input})}))}
+export async function addCorrespondenceMessage(credentials:CloudCredentials,input:{alias:string;character:'Clara'|'Heidi'|'Peter';channel:'letter'|'voice';body:string}){return parse(await fetch(endpoint(credentials.roomId),{method:'POST',headers:headers(credentials.secret),body:JSON.stringify({action:'correspond',...input})})) as Promise<{message:CorrespondenceMessage;reaction:CorrespondenceMessage|null}>}
