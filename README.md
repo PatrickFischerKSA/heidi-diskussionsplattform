@@ -10,6 +10,7 @@ Eine interaktive, textnahe Diskussionsplattform zu Johanna Spyris *Heidi* für d
 - vier Diskussionsmodi mit pausierbarem Timer
 - Figurenfokus zu Dete und Almöhi sowie Glossar heutiger Analysebegriffe
 - lokaler Lehrpersonenbereich mit Zusatzfrage, Rollenzuteilung und Beobachtungsbogen
+- serverseitig geprüfter Passwortschutz für den Lehrpersonenbereich mit zeitlich begrenzter Sitzung
 - automatische lokale Speicherung ohne Login
 - optionaler Cloud-Lernraum auf Cloudflare D1 für Lernstände und Beiträge
 - Druckansicht sowie Export als Markdown und JSON
@@ -69,7 +70,8 @@ Die API unter `/api/learning-room` erstellt geschützte Lernräume, synchronisie
 
 ## Datenschutz und Speicherung
 
-Arbeitsstände werden zunächst im Browser (`localStorage`) gespeichert. Cloud-Synchronisierung ist optional und wird ausdrücklich ausgelöst. Sie benötigt weder Namen noch E-Mail-Adresse; für Beiträge genügt ein Kürzel. Raum-ID und Schlüssel bleiben lokal im Browser und sollten nicht öffentlich geteilt werden. Der Lehrpersonenbereich ist organisatorisch getrennt, aber nicht zugangsgeschützt.
+Arbeitsstände werden zunächst im Browser (`localStorage`) gespeichert. Cloud-Synchronisierung ist optional und wird ausdrücklich ausgelöst. Sie benötigt weder Namen noch E-Mail-Adresse; für Beiträge genügt ein Kürzel. Raum-ID und Schlüssel bleiben lokal im Browser und sollten nicht öffentlich geteilt werden.
+Das Passwort des Lehrpersonenbereichs liegt ausschliesslich als geheime Hosting-Variable `TEACHER_PASSWORD` vor und wird nicht in den Browser-Build geschrieben. Eine erfolgreiche Anmeldung erzeugt eine acht Stunden gültige, signierte Sitzung.
 
 ## Textgrundlage
 
