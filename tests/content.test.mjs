@@ -39,6 +39,10 @@ test('zweiter Modus besteht aus Beiträgen der Schüler*innen', () => {
   }
   assert.ok(letters.includes('speechSynthesis'));
   assert.ok(letters.includes('Eigener Beitrag'));
+  assert.ok(letters.includes('Mit einem Klick'));
+  assert.ok(letters.includes('Jetzt Posttisch starten'));
+  assert.ok(letters.includes('Zugang kopieren'));
+  assert.ok(letters.includes('Zugangsdaten<textarea'));
   assert.ok(letters.includes('keine Aufgabe, keine Bewertung, keine Aufforderung'));
   assert.ok(route.includes("payload.action==='correspond'"));
   assert.ok(route.includes("amount%3===0"));

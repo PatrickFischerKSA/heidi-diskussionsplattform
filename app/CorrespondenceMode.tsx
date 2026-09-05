@@ -55,6 +55,7 @@ export default function CorrespondenceMode({onClose}:{onClose:()=>void}){
     <div className="correspondence-intro student-led"><span className="kicker">Briefe und Sprachnachrichten der Schüler*innen</span><h2>Die Figuren warten<br/><em>auf eure Stimmen.</em></h2><p>Hier sprechen nicht fertige Texte für Heidi, Clara und Peter. Der Austausch entsteht erst aus den Nachrichten im Lernraum.</p><div className="format-key"><span><i className="dot clara"/> Clara schreibt</span><span><i className="dot heidi"/> Heidi schreibt & spricht</span><span><i className="dot peter"/> Peter spricht</span></div></div>
 
     {!credentials?<RoomGate onConnected={next=>{setCredentials(next);setStatus('Der gemeinsame Posttisch ist geöffnet.')}}/>:<div className="correspondence-workbench">
+      <RoomAccess credentials={credentials}/>
       <aside className="thread-map live-map"><small>Was im Gewebe auftaucht</small><div className="spool" aria-hidden="true"><i/><i/><i/></div>{themes.length?<div className="theme-weave">{themes.map(theme=><span key={theme}>{theme}</span>)}</div>:<p>Noch ist kein Themenfaden sichtbar.</p>}<div className="live-room"><i/><span>{credentials.label}<small>{status}</small></span></div></aside>
 
       <div className="message-stream student-stream">
@@ -68,10 +69,17 @@ export default function CorrespondenceMode({onClose}:{onClose:()=>void}){
 }
 
 function RoomGate({onConnected}:{onConnected:(credentials:CloudCredentials)=>void}){
-  const [roomId,setRoomId]=useState('');const [secret,setSecret]=useState('');const [label,setLabel]=useState('Heidi-Posttisch');const [busy,setBusy]=useState(false);const [notice,setNotice]=useState('Raum-ID und Schlüssel verbinden mehrere Geräte mit derselben Post.');
-  const create=async()=>{setBusy(true);try{const next=await createCloudRoom(label);onConnected(next)}catch(error){setNotice(error instanceof Error?error.message:'Die Adresse konnte nicht entstehen.')}finally{setBusy(false)}};
-  const join=async()=>{setBusy(true);try{const next={roomId:roomId.trim(),secret:secret.trim(),label:'Gemeinsamer Posttisch'};const data=await loadCloudRoom(next);next.label=data.room.label;setCloudCredentials(next);onConnected(next)}catch(error){setNotice(error instanceof Error?error.message:'Diese Adresse liess sich nicht öffnen.')}finally{setBusy(false)}};
-  return <div className="post-address"><div><small>Neue gemeinsame Adresse</small><h3>{label}</h3><label>Bezeichnung<input value={label} maxLength={80} onChange={event=>setLabel(event.target.value)}/></label><button onClick={create} disabled={busy}>Posttisch eröffnen</button></div><div><small>Vorhandene Adresse</small><h3>Posttisch wiederfinden</h3><label>Raum-ID<input value={roomId} onChange={event=>setRoomId(event.target.value)}/></label><label>Zugangsschlüssel<input type="password" value={secret} onChange={event=>setSecret(event.target.value)}/></label><button onClick={join} disabled={busy||!roomId.trim()||!secret.trim()}>Adresse öffnen</button></div><p>{notice}</p></div>
+  const [access,setAccess]=useState('');const [busy,setBusy]=useState(false);const [notice,setNotice]=useState('Du kannst sofort beginnen. Zugangsdaten brauchst du erst, wenn ein anderes Gerät denselben Posttisch öffnen soll.');
+  const accessParts=access.trim().split(/\s+/).filter(Boolean);
+  const create=async()=>{setBusy(true);try{const next=await createCloudRoom('Heidi-Posttisch');onConnected(next)}catch(error){setNotice(error instanceof Error?error.message:'Der Posttisch konnte nicht geöffnet werden.')}finally{setBusy(false)}};
+  const join=async()=>{setBusy(true);try{const [roomId,secret]=accessParts;const next={roomId,secret,label:'Gemeinsamer Posttisch'};const data=await loadCloudRoom(next);next.label=data.room.label;setCloudCredentials(next);onConnected(next)}catch(error){setNotice(error instanceof Error?error.message:'Diese Zugangsdaten liessen sich nicht öffnen.')}finally{setBusy(false)}};
+  return <div className="post-address simple-post-start"><section className="post-start-card"><small>Mit einem Klick</small><h3>Neuen Posttisch starten</h3><p>Kein Konto, kein Name und kein Schlüssel nötig. Der gemeinsame Tisch wird automatisch angelegt.</p><button onClick={create} disabled={busy}>{busy?'Posttisch wird vorbereitet …':'Jetzt Posttisch starten'} <b>→</b></button></section><details className="post-reopen"><summary>Vorhandenen Posttisch öffnen</summary><div><p>Füge die zwei kopierten Zeilen mit Raum-ID und Zugangsschlüssel gemeinsam ein.</p><label>Zugangsdaten<textarea value={access} onChange={event=>setAccess(event.target.value)} placeholder={'Raum-ID\nZugangsschlüssel'} rows={3}/></label><button onClick={join} disabled={busy||accessParts.length<2}>{busy?'Wird geöffnet …':'Posttisch öffnen'}</button></div></details><p>{notice}</p></div>
+}
+
+function RoomAccess({credentials}:{credentials:CloudCredentials}){
+  const [copied,setCopied]=useState(false);
+  const copy=async()=>{try{await navigator.clipboard.writeText(`${credentials.roomId}\n${credentials.secret}`);setCopied(true);window.setTimeout(()=>setCopied(false),2400)}catch{setCopied(false)}};
+  return <section className="post-access"><div><small>Posttisch ist bereit</small><b>Andere Geräte dazuholen?</b><span>Kopiere den Zugang und sende ihn direkt an die Gruppe.</span></div><button onClick={copy}>{copied?'✓ Zugang kopiert':'Zugang kopieren'}</button><details><summary>Zugangsdaten anzeigen</summary><code>{credentials.roomId}</code><code>{credentials.secret}</code></details></section>
 }
 
 function StudentMessage({message,index,playing,onPlay}:{message:CorrespondenceMessage;index:number;playing:boolean;onPlay:()=>void}){
