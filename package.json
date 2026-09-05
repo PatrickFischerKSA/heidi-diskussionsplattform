@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
-    "build:pages": "GITHUB_PAGES=true vinext build",
+    "build:pages": "GITHUB_PAGES=true bash scripts/build-pages.sh",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "test": "node --test tests/content.test.mjs",
