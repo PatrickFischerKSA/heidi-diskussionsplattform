@@ -69,6 +69,7 @@ test('Textlabor modelliert und begleitet den Leseprozess kleinschrittig', () => 
   for (const step of ['Belegsatz','Textsignal','Beobachtung','Deutung','Gegenprobe','Ergebnis']) assert.ok(textLab.includes(step), `Mikroschritt fehlt: ${step}`);
   assert.ok(textLab.includes('aria-live="polite"'));
   assert.ok(textLab.includes('Das Sofortfeedback prüft Aufbau und Textbezug'));
+  for (const phrase of ['Nächster Handgriff','Du hast eine erste Beobachtung formuliert','Setze jetzt ein bis fünf Wörter','Beginne mit «Dieser Satz bestätigt','Lies deine Beobachtung einmal laut']) assert.ok(textLab.includes(phrase), `Konkretes Feedback fehlt: ${phrase}`);
   assert.ok(textLabStyles.includes('prefers-reduced-motion'));
 });
 
