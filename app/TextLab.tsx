@@ -17,14 +17,14 @@ const guides:Record<string,Guide>={
     {id:'time',label:'Durch einen Wechsel der Erzählzeit',feedback:'Die Zeitform bleibt unauffällig. Auffällig ist vielmehr, wie oft «verstehen» und «noch» vorkommen.'},
   ]},
   'heidi-oma':{question:'Woran wird Heidis veränderte Haltung sichtbar?',answer:'body',options:[
-    {id:'body',label:'An Blick, Tränen, Aufmerksamkeit und ihrem eigenen Wunsch',feedback:'Ja. Der Text zeigt die Veränderung körperlich und lässt Heidi am Ende selbst sprechen: Aus Pflicht wird ein eigener Wunsch.'},
+    {id:'body',label:'An Aufmerksamkeit, leuchtenden Augen und ihrem eigenen Wunsch',feedback:'Ja. Der Text zeigt die Veränderung körperlich und lässt Heidi selbst sprechen: Aus der behaupteten Unmöglichkeit wird ein eigener Wunsch.'},
     {id:'rule',label:'An einer neuen Schulregel',feedback:'Eine Regel nennt die Passage nicht. Achte auf Heidis Körper, Blick und direkte Rede.'},
     {id:'speed',label:'Daran, dass Heidi schon besonders schnell liest',feedback:'Hier kann Heidi noch nicht lesen. Suche deshalb nach Signalen für Interesse und Erwartung.'},
   ]},
-  'heidi-verstehen':{question:'Welches Bild erklärt den neuen Leseprozess?',answer:'world',options:[
-    {id:'world',label:'Aus schwarzen Buchstaben entsteht eine lebendige Welt',feedback:'Treffend. Die Metapher verbindet Zeichen, Vorstellung und Bedeutung: Menschen und Dinge «gewinnen Leben».'},
-    {id:'dark',label:'Schwarze Buchstaben machen die Geschichte bedrohlich',feedback:'«Schwarz» beschreibt zunächst die Schrift. Lies weiter: Entscheidend ist, was aus den Buchstaben hervortritt.'},
-    {id:'memory',label:'Heidi lernt den Text vollständig auswendig',feedback:'Auswendiglernen wird nicht erwähnt. Suche nach Wörtern, die Verstehen als Verwandlung oder Öffnung zeigen.'},
+  'heidi-verstehen':{question:'Welche Spannung bleibt trotz Heidis Lesefreude bestehen?',answer:'world',options:[
+    {id:'world',label:'Die Geschichten werden ihr immer näher, aber Heidi selbst bleibt unfroh',feedback:'Treffend. «Grösste Freude» und «nahes Verhältnis» stehen unmittelbar neben «nie recht froh»: Lesen trägt Heidi, löst aber ihren Kummer nicht auf.'},
+    {id:'dark',label:'Die Grossmama zwingt Heidi gegen ihren Willen zum Vorlesen',feedback:'Der Wortlaut sagt das Gegenteil: Das Vorlesen macht Heidi «die grösste Freude». Suche nach dem Gegensatz im letzten Satz.'},
+    {id:'memory',label:'Heidi verliert durch das Lesen den Bezug zu den Figuren',feedback:'Achte auf «lebte alles ganz mit durch» und «nahes Verhältnis». Die Passage beschreibt wachsende Nähe, nicht Distanz.'},
   ]},
   'peter-widerstand':{question:'Welche Spannung steckt in Peters zwei Antworten?',answer:'done-can',options:[
     {id:'done-can',label:'Er unterscheidet nicht zwischen «getan» und wirklich «können»',feedback:'Genau. Heidi meint eine bleibende Fähigkeit; Peter behandelt Lernen zunächst wie etwas, das man bloss erledigt.'},
@@ -72,22 +72,29 @@ function Demo({onDone}:{onDone:()=>void}){
   const [step,setStep]=useState(0);
   const [playing,setPlaying]=useState(true);
   const frames=[
-    {label:'1 · Lesen',title:'Zuerst nur wahrnehmen',copy:'Lies den Satz langsam – noch ohne ihn zu erklären.'},
-    {label:'2 · Markieren',title:'Ein Textsignal auswählen',copy:'«langsam von sich» und «Später» zeigen etwas, das ausdrücklich im Satz steht.'},
-    {label:'3 · Beobachten',title:'Beim Wortlaut bleiben',copy:'Mia schiebt das Buch weg und verschiebt das Lesen sprachlich auf einen späteren Zeitpunkt.'},
-    {label:'4 · Deuten',title:'Eine vorsichtige Bedeutung bilden',copy:'Dadurch wirkt das Lesen in diesem Moment wie etwas, dem Mia ausweichen möchte.'},
-    {label:'5 · Gegenprüfen',title:'Die Deutung begrenzen',copy:'Aber: Der Satz beweist nicht, dass Mia Lesen allgemein ablehnt. Vielleicht ist nur dieser Augenblick ungünstig.'},
+    {label:'1 · Lesen',title:'Zuerst den Verlauf erfassen',copy:'Lies alle sechs Sätze. Verfolge, wie Bild, Geschichte, Heimkehr, Erklärung und vergehende Zeit miteinander verbunden werden.'},
+    {label:'2 · Markieren',title:'Mehrere Textsignale verbinden',copy:'«immer wieder», «laut und leise» und «nie genug» zeigen Wiederholung und Intensität; «aber» gliedert die Geschichte in Wendungen.'},
+    {label:'3 · Beobachten',title:'Beim Wortlaut bleiben',copy:'Heidi kehrt zur Geschichte zurück, liest auf verschiedene Arten und verlangt wiederholt nach der Erklärung der Grossmama.'},
+    {label:'4 · Deuten',title:'Eine vorsichtige Bedeutung bilden',copy:'Lesen erscheint hier als wiederholtes Durchleben: Bild, eigener Leseakt und Gespräch machen die Geschichte für Heidi bedeutsam.'},
+    {label:'5 · Gegenprüfen',title:'Die Deutung begrenzen',copy:'Die Passage nennt nicht nur Vertiefung. «Die Tage gingen sehr schnell dahin» zeigt zugleich, dass Lesen Heidis Zeiterleben verändert.'},
   ];
   useEffect(()=>{if(!playing||step>=frames.length-1)return;const timer=window.setTimeout(()=>setStep(value=>value+1),2300);return()=>window.clearTimeout(timer)},[playing,step,frames.length]);
   const restart=()=>{setStep(0);setPlaying(true)};
   return <section className="lab-demo" aria-label="Animiertes Erklärbeispiel">
     <header><div><span>Bevor du beginnst</span><h2>So wird aus einer Stelle<br/><em>eine Deutung.</em></h2></div><button onClick={onDone}>Beispiel überspringen</button></header>
     <div className={`demo-stage demo-stage-${step}`}>
-      <div className="demo-source"><small>Erfundener Übungssatz</small><p>Als die Lehrerin das Buch öffnet, schiebt Mia es <mark>langsam von sich</mark> und sagt: <mark>«Später.»</mark></p></div>
+      <div className="demo-source"><small>Originalpassage · Johanna Spyri, «Heidi» · PDF-S. 104–105</small><p>
+        <span>Am liebsten beschaute Heidi immer wieder seine grüne Weide und den Hirten mitten unter der Herde, wie er so vergnüglich, auf seinen langen Stab gelehnt, dastand, denn da war er noch bei der schönen Herde des Vaters und ging nur den lustigen Schäfchen und Ziegen nach, weil es ihn freute.</span>
+        <span>Aber da kam das Bild, wo er vom Vaterhaus weggelaufen und in der Fremde war und die Schweinchen hüten musste und ganz mager geworden war bei den Trebern, die er allein noch zu essen bekam.</span>
+        <span>Und auf dem Bilde schien auch die Sonne nicht mehr so golden, da war das Land grau und nebelig.</span>
+        <span>Aber dann kam noch ein Bild zu der Geschichte: Da kam der alte Vater mit ausgebreiteten Armen aus dem Hause heraus und lief dem heimkehrenden, reuigen Sohn entgegen, um ihn zu empfangen, der ganz furchtsam und abgemagert in einem zerrissenen Wams daherkam.</span>
+        <span>Das war Heidis Lieblingsgeschichte, die es <mark>immer wieder las, laut und leise</mark>, und es konnte <mark>nie genug von der Erklärung bekommen</mark>, welche die Großmama den Kindern dazu machte.</span>
+        <span>Da waren aber noch so viele schöne Geschichten in dem Buch, und bei dem Lesen und dem Bilderbesehen <mark>gingen die Tage sehr schnell dahin</mark>, und schon nahte die Zeit heran, welche die Großmama zu ihrer Abreise bestimmt hatte.</span>
+      </p></div>
       <div className="demo-thinking"><div className="demo-progress" aria-label={`Beispielschritt ${step+1} von ${frames.length}`}>{frames.map((_,index)=><span className={index<=step?'active':''} key={index}/>)}</div><small>{frames[step].label}</small><h3>{frames[step].title}</h3><p key={step}>{frames[step].copy}</p></div>
     </div>
     <footer><button onClick={restart}>↻ Noch einmal zeigen</button><div><button disabled={step===0} onClick={()=>{setPlaying(false);setStep(value=>Math.max(0,value-1))}}>Zurück</button><button onClick={()=>{if(step<frames.length-1){setPlaying(false);setStep(value=>value+1)}else onDone()}}>{step<frames.length-1?'Nächster Schritt':'Jetzt selbst untersuchen →'}</button></div></footer>
-    <p className="demo-note">Das Beispiel ist erfunden. Im Labor arbeitest du danach ausschliesslich am Romantext.</p>
+    <p className="demo-note">Originalwortlaut der bereitgestellten Ausgabe. Die Hervorhebungen gehören zur Demonstration, nicht zum Romantext.</p>
   </section>
 }
 

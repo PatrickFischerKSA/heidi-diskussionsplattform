@@ -58,14 +58,21 @@ test('Cloud-Lernraum speichert Lernstände und Beiträge geschützt', () => {
 test('Textlabor trainiert genaues Lesen an Heidi und Peter', () => {
   assert.ok(app.includes('Das Lesen lesen'));
   assert.equal([...textLabData.matchAll(/id:'(?:heidi|peter)-/g)].length, 6);
-  for (const phrase of ['Lesen als fremde Pflicht','Ein Bild wird zum Lesemotiv','Buchstaben gewinnen Leben','«Kann nicht»','Buchstabieren, vormachen, wiederholen','Lesen bekommt einen Adressaten']) assert.ok(textLabData.includes(phrase), `Textfenster fehlt: ${phrase}`);
+  for (const phrase of ['Lesen als fremde Pflicht','Ein Bild wird zum Lesemotiv','Lesefreude – und dennoch nicht froh','«Kann nicht»','Buchstabieren, vormachen, wiederholen','Lesen bekommt einen Adressaten']) assert.ok(textLabData.includes(phrase), `Textfenster fehlt: ${phrase}`);
   for (const step of ['Beobachtung','Deutung','Gegenprobe','Textlupe']) assert.ok(textLab.includes(step), `Leseschritt fehlt: ${step}`);
   assert.ok(textLab.includes('aria-pressed'));
   assert.ok(cloud.includes("saveCloudState(credentials,'textlab'"));
 });
 
 test('Textlabor modelliert und begleitet den Leseprozess kleinschrittig', () => {
-  for (const phrase of ['Animiertes Erklärbeispiel','Erfundener Übungssatz','Zuerst nur wahrnehmen','Eine vorsichtige Bedeutung bilden','Die Deutung begrenzen']) assert.ok(textLab.includes(phrase), `Erklärbeispiel fehlt: ${phrase}`);
+  for (const phrase of ['Animiertes Erklärbeispiel','Originalpassage · Johanna Spyri','Zuerst den Verlauf erfassen','Eine vorsichtige Bedeutung bilden','Die Deutung begrenzen']) assert.ok(textLab.includes(phrase), `Erklärbeispiel fehlt: ${phrase}`);
+  assert.equal(textLab.includes('Erfundener Übungssatz'), false);
+  const passageBlocks=[...textLabData.matchAll(/sentences:\[([\s\S]*?)\n  \],lenses:/g)];
+  assert.equal(passageBlocks.length,6);
+  for(const block of passageBlocks){
+    const sentenceCount=block[1].split('\n').filter(line=>/^\s{4}'/.test(line)).length;
+    assert.ok(sentenceCount>=5&&sentenceCount<=7,`Passage hat ${sentenceCount} statt 5–7 Sätzen`);
+  }
   for (const step of ['Belegsatz','Textsignal','Beobachtung','Deutung','Gegenprobe','Ergebnis']) assert.ok(textLab.includes(step), `Mikroschritt fehlt: ${step}`);
   assert.ok(textLab.includes('aria-live="polite"'));
   assert.ok(textLab.includes('Das Sofortfeedback prüft Aufbau und Textbezug'));
