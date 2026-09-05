@@ -11,6 +11,7 @@ const teacherGate = await readFile(new URL('../app/TeacherGate.tsx', import.meta
 const teacherAuth = await readFile(new URL('../app/api/teacher-auth/route.ts', import.meta.url), 'utf8');
 const textLab = await readFile(new URL('../app/TextLab.tsx', import.meta.url), 'utf8');
 const textLabData = await readFile(new URL('../app/textLabData.ts', import.meta.url), 'utf8');
+const textLabCoaching = await readFile(new URL('../app/textLabCoaching.ts', import.meta.url), 'utf8');
 const textLabStyles = await readFile(new URL('../app/textlab-extra.css', import.meta.url), 'utf8');
 const hosting = JSON.parse(await readFile(new URL('../.openai/hosting.json', import.meta.url), 'utf8'));
 
@@ -26,7 +27,7 @@ test('enthält die geforderten didaktischen Werkzeuge', () => {
 });
 
 test('führt Lernende schrittweise durch die Diskussion', () => {
-  for (const phrase of ['Dein Auftrag','Tu jetzt:','Noch ein konkreter Handgriff','Schritt geschafft','Weiter zu Schritt','Deine Argumentkette']) assert.ok(app.includes(phrase), `Führung fehlt: ${phrase}`);
+  for (const phrase of ['Dein Auftrag','Tu jetzt:','An diesem konkreten Punkt weiterarbeiten','Dieser Gedanke trägt','Aus deinem Beitrag','Weiter zu Schritt','Deine Argumentkette']) assert.ok(app.includes(phrase), `Führung fehlt: ${phrase}`);
   for (const field of ['questionResponse','perspectiveResponse','counterResponse']) assert.ok(app.includes(field), `Geführtes Antwortfeld fehlt: ${field}`);
   assert.ok(app.includes('disabled={!unlocked}'));
   assert.ok(app.includes('currentStep===0'));
@@ -69,6 +70,10 @@ test('zweiter Modus besteht aus Beiträgen der Schüler*innen', () => {
   assert.ok(letters.includes('keine Aufgabe, keine Bewertung, keine Aufforderung'));
   assert.ok(route.includes("payload.action==='correspond'"));
   assert.ok(route.includes("amount%3===0"));
+  assert.ok(route.includes('source.lens(currentExcerpt,character,bridge)'));
+  assert.ok(route.includes('Zwischen diesen beiden Formulierungen entsteht eine Spannung'));
+  assert.ok(letters.includes('voiceFrames[character]'));
+  assert.ok(letters.includes('Der Faden hört in deinem Entwurf'));
 });
 
 test('Cloud-Lernraum speichert Lernstände und Beiträge geschützt', () => {
@@ -103,7 +108,10 @@ test('Textlabor modelliert und begleitet den Leseprozess kleinschrittig', () => 
   for (const step of ['Belegsatz','Textsignal','Beobachtung','Deutung','Gegenprobe','Ergebnis']) assert.ok(textLab.includes(step), `Mikroschritt fehlt: ${step}`);
   assert.ok(textLab.includes('aria-live="polite"'));
   assert.ok(textLab.includes('Das Sofortfeedback prüft Aufbau und Textbezug'));
-  for (const phrase of ['Nächster Handgriff','Du hast eine erste Beobachtung formuliert','Setze jetzt ein bis fünf Wörter','Beginne mit «Dieser Satz bestätigt','Lies deine Beobachtung einmal laut']) assert.ok(textLab.includes(phrase), `Konkretes Feedback fehlt: ${phrase}`);
+  for (const phrase of ['Nächster Handgriff','Du hast Satz','coach.observationInstruction','coach.interpretationInstruction','coach.counterInstruction','active.sentences[entry.marks[0]]']) assert.ok(textLab.includes(phrase), `Passusbezug fehlt: ${phrase}`);
+  for (const phrase of ['immer und immer','leuchtenden Augen','nie recht froh','Hab’s schon getan','sauber und geläufig','aufhorchenden Mutter']) assert.ok(textLabCoaching.includes(phrase), `Passusspezifisches Feedback fehlt: ${phrase}`);
+  const coachingSource=textLabCoaching.slice(textLabCoaching.indexOf('passageCoaches'));
+  for(const field of ['selectTitle','selectInstruction','selectEmpty','observationTitle','observationInstruction','observationNext','interpretationTitle','interpretationInstruction','interpretationNext','counterTitle','counterInstruction','counterNext','result']) assert.equal([...coachingSource.matchAll(new RegExp(`${field}:'([^']+)'`,'g'))].length,6,`${field} fehlt für eine Passage`);
   assert.ok(textLabStyles.includes('prefers-reduced-motion'));
 });
 

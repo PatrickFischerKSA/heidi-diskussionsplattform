@@ -19,26 +19,34 @@ const themeSignals:Record<string,string[]>={
   Zugehörigkeit:['zuhause','heimat','fremd','dazugehör','fort','zurück'],
   Verantwortung:['schuld','sorge','entscheide','pflicht','verantwort'],
 };
-const reactions:Record<string,{character:string;channel:'letter'|'voice';body:string}>={
-  Freundschaft:{character:'Grossmama',channel:'letter',body:'Freundschaft wärmt. Wo sie festgehalten wird, wird aus Nähe leicht Angst um den eigenen Platz. Zwischen Freundschaft und Zugehörigkeit läuft ein feiner Faden.'},
-  Eifersucht:{character:'Grossmama',channel:'letter',body:'Eifersucht spricht oft lauter als die Angst, vergessen zu werden. Unter ihr liegt manchmal dieselbe Sehnsucht wie unter Freundschaft.'},
-  Tiere:{character:'Almöhi',channel:'voice',body:'Bei den Geissen zeigt sich Nähe nicht in schönen Worten, sondern darin, wer bleibt, aufpasst und Verantwortung übernimmt.'},
-  Bildung:{character:'Fräulein Rottenmeier',channel:'letter',body:'Bildung gilt in Frankfurt als Eintrittskarte. Wer ihre Regeln bestimmt, bestimmt allerdings auch, wer als gebildet erscheinen darf.'},
-  Behinderung:{character:'Grossmama',channel:'letter',body:'Ein Körper wird schnell zum Gesprächsthema der anderen. Selbstbestimmung beginnt dort, wo Claras eigene Stimme nicht hinter der Sorge um sie verschwindet.'},
-  Natur:{character:'Almöhi',channel:'voice',body:'Die Alp macht keinen Stundenplan. Trotzdem verändert sie, was Heidi wahrnimmt und weiss. Natur und Bildung stehen näher beieinander, als Frankfurt glaubt.'},
-  Ungleichheit:{character:'Dete',channel:'voice',body:'Nicht jede harte Entscheidung entsteht in Freiheit. Arbeit, Geld und Abhängigkeit reisen mit, auch wenn später nur über Verantwortung gesprochen wird.'},
-  Zugehörigkeit:{character:'Grossmama',channel:'letter',body:'Zuhause ist nicht immer nur ein Ort. Manchmal entsteht es zwischen Menschen – und manchmal engt gerade diese Nähe jemanden ein.'},
-  Verantwortung:{character:'Herr Sesemann',channel:'letter',body:'Fürsorge und Entscheidungsmacht wohnen oft im selben Haus. Gute Absichten verändern nicht, wer am Ende über wen bestimmen darf.'},
+const reactions:Record<string,{character:string;channel:'letter'|'voice';lens:(quote:string,student:string,bridge:string)=>string}>={
+  Freundschaft:{character:'Grossmama',channel:'letter',lens:(quote,student,bridge)=>`${student}s Worte «${quote}» beschreiben Freundschaft nicht bloss als Nähe, sondern als konkrete Erwartung an den anderen. ${bridge}Achtet darauf, ob diese Nähe der anderen Figur Raum lässt oder ihren Platz festlegt.`},
+  Eifersucht:{character:'Grossmama',channel:'letter',lens:(quote,student,bridge)=>`In «${quote}» spricht ${student} über Eifersucht, doch darunter ist eine bestimmte Verlustangst hörbar. ${bridge}Entscheidend ist hier: Welche Beziehung glaubt die Figur zu verlieren, und wodurch fühlt sie sich ersetzt?`},
+  Tiere:{character:'Almöhi',channel:'voice',lens:(quote,student,bridge)=>`${student} nennt «${quote}». ${bridge}Bei einer Geiss, einer Herde oder einem verletzten Tier zeigt sich Zuneigung daran, wer füttert, schützt und die Folgen des eigenen Handelns trägt.`},
+  Bildung:{character:'Fräulein Rottenmeier',channel:'letter',lens:(quote,student,bridge)=>`Die Formulierung «${quote}» verrät, was ${student} unter Lernen versteht. ${bridge}Im Haus Sesemann würde ich nun genau fragen, ob hier Lesen als Regel, als Können oder als Handlung für einen bestimmten Menschen erscheint.`},
+  Behinderung:{character:'Grossmama',channel:'letter',lens:(quote,student,bridge)=>`${student} schreibt «${quote}». ${bridge}Darin muss Claras eigener Wunsch von den Erwartungen der anderen getrennt werden: Wer spricht über ihren Körper, und wo spricht Clara selbst über ihre Möglichkeiten?`},
+  Natur:{character:'Almöhi',channel:'voice',lens:(quote,student,bridge)=>`In «${quote}» macht ${student} die Alp zu mehr als einer Kulisse. ${bridge}Prüft an dieser Stelle, ob Wind, Berg, Tier oder Bewegung wirklich handelt – oder ob die Figur in dieser Umgebung anders wahrnimmt und entscheidet.`},
+  Ungleichheit:{character:'Dete',channel:'voice',lens:(quote,student,bridge)=>`${student}s Satz «${quote}» berührt ungleiche Möglichkeiten. ${bridge}Nennt nicht nur arm oder reich: Wer verfügt hier über Geld, Zeit, Nahrung oder die Macht, den Wohnort eines Kindes zu bestimmen?`},
+  Zugehörigkeit:{character:'Grossmama',channel:'letter',lens:(quote,student,bridge)=>`Mit «${quote}» bindet ${student} Zugehörigkeit an einen konkreten Ort oder Menschen. ${bridge}Die offene Spannung liegt darin, ob dieses Zuhause Halt gibt oder eine andere Bindung ausschliesst.`},
+  Verantwortung:{character:'Herr Sesemann',channel:'letter',lens:(quote,student,bridge)=>`${student} formuliert «${quote}». ${bridge}Daran lässt sich Verantwortung genau prüfen: Wer konnte die Folge voraussehen, wer durfte entscheiden und wer muss den entstandenen Schaden bearbeiten?`},
+  'Offener Faden':{character:'Grossmama',channel:'letter',lens:(quote,student,bridge)=>`${student} legt mit «${quote}» einen Faden aus, der noch in keines unserer bisherigen Themen passt. ${bridge}Die interessante Frage entsteht direkt aus diesen Worten: Welche Figur müsste darauf antworten, weil sie darin gemeint, betroffen oder herausgefordert ist?`},
 };
 
 function detectTheme(body:string){
   const normalized=body.toLocaleLowerCase('de-CH');
-  let best='Freundschaft'; let score=0;
+  let best='Offener Faden'; let score=0;
   for(const [theme,signals] of Object.entries(themeSignals)){
     const hits=signals.filter(signal=>normalized.includes(signal)).length;
     if(hits>score){best=theme;score=hits}
   }
   return best;
+}
+
+function excerpt(body:string,theme:string){
+  const parts=body.split(/(?<=[.!?])\s+|\n+/).map(part=>part.trim()).filter(Boolean);
+  const signals=themeSignals[theme]||[];
+  const chosen=parts.find(part=>signals.some(signal=>part.toLocaleLowerCase('de-CH').includes(signal)))||parts[0]||body;
+  return chosen.replace(/[«»]/g,'').slice(0,120)+(chosen.length>120?'…':'');
 }
 
 function mapCorrespondence(item:CorrespondenceRow){return {id:item.id,kind:item.message_kind,alias:item.alias,character:item.character,channel:item.channel,topic:item.topic,body:item.body,createdAt:item.created_at}}
@@ -152,9 +160,12 @@ export async function POST(request:Request){
     const countRow=await db.prepare("SELECT COUNT(*) AS amount FROM correspondence_messages WHERE room_id = ? AND message_kind = 'student'").bind(auth.room.id).first<{amount:number}>();
     const amount=Number(countRow?.amount||0); let reaction=null;
     if(amount>0&&amount%3===0){
-      const source=reactions[topic]||reactions.Freundschaft; const reactionId=`reaction:${auth.room.id}:${Math.floor(amount/3)}`; const reactionAt=new Date(Date.now()+1).toISOString();
-      const saved=await db.prepare('INSERT OR IGNORE INTO correspondence_messages (id, room_id, message_kind, alias, character, channel, topic, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(reactionId,auth.room.id,'reaction','Randstimme',source.character,source.channel,topic,source.body,reactionAt).run();
-      if(saved.meta.changes)reaction={id:reactionId,kind:'reaction' as const,alias:'Randstimme',character:source.character,channel:source.channel,topic,body:source.body,createdAt:reactionAt};
+      const previous=await db.prepare("SELECT character, topic, body FROM correspondence_messages WHERE room_id = ? AND message_kind = 'student' AND id != ? ORDER BY created_at DESC LIMIT 1").bind(auth.room.id,id).first<{character:string;topic:string;body:string}>();
+      const source=reactions[topic]||reactions['Offener Faden']; const currentExcerpt=excerpt(body,topic);
+      const bridge=previous?`${previous.character} schrieb davor «${excerpt(previous.body,previous.topic)}». Zwischen diesen beiden Formulierungen entsteht eine Spannung: `:'';
+      const reactionBody=source.lens(currentExcerpt,character,bridge); const reactionId=`reaction:${auth.room.id}:${Math.floor(amount/3)}`; const reactionAt=new Date(Date.now()+1).toISOString();
+      const saved=await db.prepare('INSERT OR IGNORE INTO correspondence_messages (id, room_id, message_kind, alias, character, channel, topic, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(reactionId,auth.room.id,'reaction','Randstimme',source.character,source.channel,topic,reactionBody,reactionAt).run();
+      if(saved.meta.changes)reaction={id:reactionId,kind:'reaction' as const,alias:'Randstimme',character:source.character,channel:source.channel,topic,body:reactionBody,createdAt:reactionAt};
     }
     await db.prepare('UPDATE learning_rooms SET updated_at = ? WHERE id = ?').bind(createdAt,auth.room.id).run();
     return response(request,{message:{id,kind:'student',alias,character,channel,topic,body,createdAt},reaction},201);
