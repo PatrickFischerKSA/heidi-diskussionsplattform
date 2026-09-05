@@ -105,7 +105,7 @@ test('Textlabor trainiert genaues Lesen an Heidi und Peter', () => {
 });
 
 test('Textlabor modelliert und begleitet den Leseprozess kleinschrittig', () => {
-  for (const phrase of ['Animiertes Erklärbeispiel','Originalpassage · Johanna Spyri','Zuerst den Verlauf erfassen','Eine vorsichtige Bedeutung bilden','Die Deutung begrenzen']) assert.ok(textLab.includes(phrase), `Erklärbeispiel fehlt: ${phrase}`);
+  for (const phrase of ['Animiertes Erklärbeispiel','Originalpassage · Johanna Spyri','Bei «Trebern» anhalten','Eine Bedeutung vermuten','Die Vermutung absichern','Wiederholung sichtbar machen','Markierungen beschriften','Wortlaut und Notiz trennen','Die Aussage bleibt am Text']) assert.ok(textLab.includes(phrase), `Erklärbeispiel fehlt: ${phrase}`);
   assert.equal(textLab.includes('Erfundener Übungssatz'), false);
   const passageBlocks=[...textLabData.matchAll(/sentences:\[([\s\S]*?)\n  \],lenses:/g)];
   assert.equal(passageBlocks.length,6);
@@ -113,7 +113,10 @@ test('Textlabor modelliert und begleitet den Leseprozess kleinschrittig', () => 
     const sentenceCount=block[1].split('\n').filter(line=>/^\s{4}'/.test(line)).length;
     assert.ok(sentenceCount>=5&&sentenceCount<=7,`Passage hat ${sentenceCount} statt 5–7 Sätzen`);
   }
-  for (const step of ['Belegsatz','Textsignal','Beobachtung','Deutung','Gegenprobe','Ergebnis']) assert.ok(textLab.includes(step), `Mikroschritt fehlt: ${step}`);
+  for (const step of ['Belegsatz','Wort klären','Textsignal','Anstreichen','Exzerpieren','Beobachtung','Deutung','Gegenprobe','Ergebnis']) assert.ok(textLab.includes(step), `Mikroschritt fehlt: ${step}`);
+  for (const interaction of ['vocabulary-workbench','MarkedSentence','marked-passage','excerpt-sheet','margin-code','demo-word-card','demo-excerpt']) assert.ok((textLab+textLabStyles).includes(interaction),`Lesehandlung fehlt: ${interaction}`);
+  assert.equal([...textLabData.matchAll(/vocabulary:\[/g)].length,6);
+  for (const word of ['kurzweiliger','Ergebung','unvermerkt','eiferte','geläufig','aufhorchend']) assert.ok(textLabData.includes(word),`Passusspezifische Wortklärung fehlt: ${word}`);
   assert.ok(textLab.includes('aria-live="polite"'));
   assert.ok(textLab.includes('Das Sofortfeedback prüft Aufbau und Textbezug'));
   for (const phrase of ['Nächster Handgriff','Du hast Satz','coach.observationInstruction','coach.interpretationInstruction','coach.counterInstruction','active.sentences[entry.marks[0]]']) assert.ok(textLab.includes(phrase), `Passusbezug fehlt: ${phrase}`);
