@@ -25,6 +25,14 @@ test('enthält die geforderten didaktischen Werkzeuge', () => {
   }
 });
 
+test('führt Lernende schrittweise durch die Diskussion', () => {
+  for (const phrase of ['Dein Auftrag','Tu jetzt:','Noch ein konkreter Handgriff','Schritt geschafft','Weiter zu Schritt','Deine Argumentkette']) assert.ok(app.includes(phrase), `Führung fehlt: ${phrase}`);
+  for (const field of ['questionResponse','perspectiveResponse','counterResponse']) assert.ok(app.includes(field), `Geführtes Antwortfeld fehlt: ${field}`);
+  assert.ok(app.includes('disabled={!unlocked}'));
+  assert.ok(app.includes('currentStep===0'));
+  assert.ok(app.includes('currentStep===5'));
+});
+
 test('verwendet Schweizer Rechtschreibung in zentralen UI-Texten', () => {
   assert.equal((data + app).includes('ß'), false);
   assert.ok(app.includes('schliessen') || app.includes('Schliessen'));
