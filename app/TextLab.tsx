@@ -1,35 +1,137 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { comparisonDimensions, labPassages } from './textLabData';
 
-type Entry={marks:number[];observation:string;interpretation:string;check:string};
+type Entry={marks:number[];signalChoice:string;observation:string;interpretation:string;counterMark:number|null;check:string};
 export type LabState={entries:Record<string,Entry>;comparison:Record<string,string>};
 export const TEXTLAB_KEY='denkraum-textlabor-v1';
-const emptyEntry=():Entry=>({marks:[],observation:'',interpretation:'',check:''});
+const emptyEntry=():Entry=>({marks:[],signalChoice:'',observation:'',interpretation:'',counterMark:null,check:''});
 const load=():LabState=>{try{return JSON.parse(localStorage.getItem(TEXTLAB_KEY)||'') as LabState}catch{return {entries:{},comparison:{}}}};
 
+type Guide={question:string;options:{id:string;label:string;feedback:string}[];answer:string};
+const guides:Record<string,Guide>={
+  'heidi-schule':{question:'Wie verstärkt der Text das Nichtverstehen?',answer:'repeat',options:[
+    {id:'repeat',label:'Durch Wiederholung und Steigerung von «verstehen»',feedback:'Genau. Dasselbe Wort kehrt wieder und steigert Klaras Warnung: Mehr Erklärung kann hier sogar weniger Verstehen bedeuten.'},
+    {id:'room',label:'Durch eine genaue Beschreibung des Schulzimmers',feedback:'Schau noch einmal nur auf den Wortlaut: Ein Schulzimmer wird gar nicht beschrieben. Suche nach einem wiederkehrenden Verb.'},
+    {id:'time',label:'Durch einen Wechsel der Erzählzeit',feedback:'Die Zeitform bleibt unauffällig. Auffällig ist vielmehr, wie oft «verstehen» und «noch» vorkommen.'},
+  ]},
+  'heidi-oma':{question:'Woran wird Heidis veränderte Haltung sichtbar?',answer:'body',options:[
+    {id:'body',label:'An Blick, Tränen, Aufmerksamkeit und ihrem eigenen Wunsch',feedback:'Ja. Der Text zeigt die Veränderung körperlich und lässt Heidi am Ende selbst sprechen: Aus Pflicht wird ein eigener Wunsch.'},
+    {id:'rule',label:'An einer neuen Schulregel',feedback:'Eine Regel nennt die Passage nicht. Achte auf Heidis Körper, Blick und direkte Rede.'},
+    {id:'speed',label:'Daran, dass Heidi schon besonders schnell liest',feedback:'Hier kann Heidi noch nicht lesen. Suche deshalb nach Signalen für Interesse und Erwartung.'},
+  ]},
+  'heidi-verstehen':{question:'Welches Bild erklärt den neuen Leseprozess?',answer:'world',options:[
+    {id:'world',label:'Aus schwarzen Buchstaben entsteht eine lebendige Welt',feedback:'Treffend. Die Metapher verbindet Zeichen, Vorstellung und Bedeutung: Menschen und Dinge «gewinnen Leben».'},
+    {id:'dark',label:'Schwarze Buchstaben machen die Geschichte bedrohlich',feedback:'«Schwarz» beschreibt zunächst die Schrift. Lies weiter: Entscheidend ist, was aus den Buchstaben hervortritt.'},
+    {id:'memory',label:'Heidi lernt den Text vollständig auswendig',feedback:'Auswendiglernen wird nicht erwähnt. Suche nach Wörtern, die Verstehen als Verwandlung oder Öffnung zeigen.'},
+  ]},
+  'peter-widerstand':{question:'Welche Spannung steckt in Peters zwei Antworten?',answer:'done-can',options:[
+    {id:'done-can',label:'Er unterscheidet nicht zwischen «getan» und wirklich «können»',feedback:'Genau. Heidi meint eine bleibende Fähigkeit; Peter behandelt Lernen zunächst wie etwas, das man bloss erledigt.'},
+    {id:'length',label:'Er möchte lieber einen längeren Text lesen',feedback:'Die Länge eines Textes kommt nicht vor. Vergleiche die Bedeutungen von «getan» und «kann».'},
+    {id:'teacher',label:'Er verlangt nach einer anderen Lehrperson',feedback:'Das sagt Peter nicht. Seine knappen Antworten zeigen Widerstand gegen das Lernen selbst.'},
+  ]},
+  'peter-unterricht':{question:'Wie organisiert Heidi Peters Lernen?',answer:'repeat',options:[
+    {id:'repeat',label:'Sie verbindet Vormachen, Wiederholen und kleine Einheiten',feedback:'Ja. Heidi liest das Ganze vor, kehrt zu drei Buchstaben zurück und bestätigt einen kleinen erreichten Schritt.'},
+    {id:'alone',label:'Sie lässt Peter von Anfang an völlig allein lesen',feedback:'Im Gegenteil: Beide sitzen über demselben Buch, und Heidi macht vor, hört zu und entscheidet mit.'},
+    {id:'one',label:'Sie erklärt jeden Buchstaben nur ein einziges Mal',feedback:'Achte auf den Rhythmus: «wieder», «noch einmal», «so lange». Wiederholung ist zentral.'},
+  ]},
+  'peter-transfer':{question:'Wodurch erhält Peters Lesen jetzt Bedeutung?',answer:'audience',options:[
+    {id:'audience',label:'Es richtet sich an die Grossmutter und bewährt sich später in der Schule',feedback:'Genau. Lesen wird eine Handlung für jemanden – und die neue Fähigkeit zeigt sich danach auch im schulischen Raum.'},
+    {id:'grade',label:'Peter bekommt sofort eine gute Schulnote',feedback:'Eine Note nennt der Text nicht. Frage stattdessen: Wer hört ihm zu, und wo zeigt sich das Können später?'},
+    {id:'book',label:'Das Buch wird gegen ein leichteres ausgetauscht',feedback:'Von einem Buchwechsel ist nicht die Rede. Achte auf Adressatin und Ortswechsel.'},
+  ]},
+};
+
+const quotePattern=/[«»„“\"]/;
+const observationFeedback=(value:string,hasMark:boolean)=>{
+  if(!hasMark)return ['pause','Markiere zuerst den Satz, auf den sich deine Beobachtung stützt.'];
+  if(!value.trim())return ['pause','Beginne mit dem Sichtbaren: Nenne ein Wort, eine Wiederholung oder ein Körperzeichen.'];
+  if(value.trim().length<28)return ['next','Guter Anfang. Beschreibe noch genauer, was im Wortlaut auffällt.'];
+  if(!quotePattern.test(value))return ['next','Die Beobachtung ist ausführlich. Füge jetzt ein kurzes wörtliches Zitat in «Anführungszeichen» ein.'];
+  return ['ready','Beobachtung tragfähig: Du benennst ein Textsignal und belegst es wörtlich.'];
+};
+const interpretationFeedback=(value:string)=>{
+  if(!value.trim())return ['pause','Formuliere vorsichtig: Was könnte dein beobachtetes Signal über das Lesen zeigen?'];
+  if(value.trim().length<38)return ['next','Die Richtung ist erkennbar. Entfalte die Wirkung noch in einem vollständigen Gedankengang.'];
+  if(!/(weil|dadurch|deshalb|zeigt|verdeutlicht|wirkt|macht|indem)/i.test(value))return ['next','Verbinde Beleg und Deutung ausdrücklich, zum Beispiel mit «dadurch», «weil» oder «das zeigt».'];
+  return ['ready','Deutung schlüssig gebaut: Du stellst einen Zusammenhang zwischen Textsignal und Bedeutung her.'];
+};
+const checkFeedback=(value:string,counterMark:number|null)=>{
+  if(counterMark===null)return ['pause','Wähle zuerst einen anderen Satz als Gegenprobe.'];
+  if(!value.trim())return ['pause','Erkläre nun: Bestätigt dieser Satz deine Deutung – oder begrenzt er sie?'];
+  if(value.trim().length<35)return ['next','Die Gegenprobe ist begonnen. Benenne noch genauer, was sie an deiner Deutung verändert.'];
+  if(!/(aber|jedoch|zugleich|nur|teilweise|andererseits|obwohl|bestätigt|begrenzt)/i.test(value))return ['next','Mache die Spannung sichtbar, etwa mit «aber», «zugleich», «teilweise» oder «begrenzt».'];
+  return ['ready','Gegenprobe gelungen: Deine Deutung wird differenziert statt nur wiederholt.'];
+};
+
+function Feedback({result}:{result:string[]}){return <p className={`instant-feedback ${result[0]}`} aria-live="polite"><i aria-hidden="true">{result[0]==='ready'?'✓':result[0]==='next'?'→':'·'}</i>{result[1]}</p>}
+
+function Demo({onDone}:{onDone:()=>void}){
+  const [step,setStep]=useState(0);
+  const [playing,setPlaying]=useState(true);
+  const frames=[
+    {label:'1 · Lesen',title:'Zuerst nur wahrnehmen',copy:'Lies den Satz langsam – noch ohne ihn zu erklären.'},
+    {label:'2 · Markieren',title:'Ein Textsignal auswählen',copy:'«langsam von sich» und «Später» zeigen etwas, das ausdrücklich im Satz steht.'},
+    {label:'3 · Beobachten',title:'Beim Wortlaut bleiben',copy:'Mia schiebt das Buch weg und verschiebt das Lesen sprachlich auf einen späteren Zeitpunkt.'},
+    {label:'4 · Deuten',title:'Eine vorsichtige Bedeutung bilden',copy:'Dadurch wirkt das Lesen in diesem Moment wie etwas, dem Mia ausweichen möchte.'},
+    {label:'5 · Gegenprüfen',title:'Die Deutung begrenzen',copy:'Aber: Der Satz beweist nicht, dass Mia Lesen allgemein ablehnt. Vielleicht ist nur dieser Augenblick ungünstig.'},
+  ];
+  useEffect(()=>{if(!playing||step>=frames.length-1)return;const timer=window.setTimeout(()=>setStep(value=>value+1),2300);return()=>window.clearTimeout(timer)},[playing,step,frames.length]);
+  const restart=()=>{setStep(0);setPlaying(true)};
+  return <section className="lab-demo" aria-label="Animiertes Erklärbeispiel">
+    <header><div><span>Bevor du beginnst</span><h2>So wird aus einer Stelle<br/><em>eine Deutung.</em></h2></div><button onClick={onDone}>Beispiel überspringen</button></header>
+    <div className={`demo-stage demo-stage-${step}`}>
+      <div className="demo-source"><small>Erfundener Übungssatz</small><p>Als die Lehrerin das Buch öffnet, schiebt Mia es <mark>langsam von sich</mark> und sagt: <mark>«Später.»</mark></p></div>
+      <div className="demo-thinking"><div className="demo-progress" aria-label={`Beispielschritt ${step+1} von ${frames.length}`}>{frames.map((_,index)=><span className={index<=step?'active':''} key={index}/>)}</div><small>{frames[step].label}</small><h3>{frames[step].title}</h3><p key={step}>{frames[step].copy}</p></div>
+    </div>
+    <footer><button onClick={restart}>↻ Noch einmal zeigen</button><div><button disabled={step===0} onClick={()=>{setPlaying(false);setStep(value=>Math.max(0,value-1))}}>Zurück</button><button onClick={()=>{if(step<frames.length-1){setPlaying(false);setStep(value=>value+1)}else onDone()}}>{step<frames.length-1?'Nächster Schritt':'Jetzt selbst untersuchen →'}</button></div></footer>
+    <p className="demo-note">Das Beispiel ist erfunden. Im Labor arbeitest du danach ausschliesslich am Romantext.</p>
+  </section>
+}
+
 export default function TextLab({onClose}:{onClose:()=>void}){
+  const [view,setView]=useState<'demo'|'lab'>('demo');
   const [reader,setReader]=useState<'Heidi'|'Peter'>('Heidi');
   const passages=labPassages.filter(item=>item.reader===reader);
   const [activeId,setActiveId]=useState(passages[0].id);
+  const [microStep,setMicroStep]=useState(0);
   const [state,setState]=useState<LabState>(load);
   const active=labPassages.find(item=>item.id===activeId)!;
-  const entry=state.entries[activeId]||emptyEntry();
+  const stored=state.entries[activeId]||emptyEntry();
+  const entry={...emptyEntry(),...stored,counterMark:stored.counterMark??null};
+  const guide=guides[activeId];
   useEffect(()=>{try{localStorage.setItem(TEXTLAB_KEY,JSON.stringify(state))}catch{}},[state]);
-  const done=useMemo(()=>labPassages.filter(item=>{const value=state.entries[item.id];return value?.marks.length&&value.observation.trim()&&value.interpretation.trim()&&value.check.trim()}).length,[state]);
-  const changeReader=(next:'Heidi'|'Peter')=>{setReader(next);setActiveId(labPassages.find(item=>item.reader===next)!.id)};
-  const update=(patch:Partial<Entry>)=>setState(current=>({...current,entries:{...current.entries,[activeId]:{...(current.entries[activeId]||emptyEntry()),...patch}}}));
-  const toggleMark=(index:number)=>update({marks:entry.marks.includes(index)?entry.marks.filter(item=>item!==index):[...entry.marks,index]});
+  const isComplete=(id:string)=>{const value={...emptyEntry(),...state.entries[id]};return value.marks.length===1&&value.signalChoice===guides[id].answer&&observationFeedback(value.observation,true)[0]==='ready'&&interpretationFeedback(value.interpretation)[0]==='ready'&&checkFeedback(value.check,value.counterMark)[0]==='ready'};
+  const done=labPassages.filter(item=>isComplete(item.id)).length;
+  const changeReader=(next:'Heidi'|'Peter')=>{setReader(next);setActiveId(labPassages.find(item=>item.reader===next)!.id);setMicroStep(0)};
+  const changePassage=(id:string)=>{setActiveId(id);setMicroStep(0)};
+  const update=(patch:Partial<Entry>)=>setState(current=>({...current,entries:{...current.entries,[activeId]:{...emptyEntry(),...current.entries[activeId],...patch}}}));
   const updateComparison=(dimension:string,value:string)=>setState(current=>({...current,comparison:{...current.comparison,[dimension]:value}}));
+  const steps=['Belegsatz','Textsignal','Beobachtung','Deutung','Gegenprobe','Ergebnis'];
+  const next=()=>setMicroStep(value=>Math.min(steps.length-1,value+1));
+  const observationResult=observationFeedback(entry.observation,entry.marks.length===1);
+  const interpretationResult=interpretationFeedback(entry.interpretation);
+  const checkResult=checkFeedback(entry.check,entry.counterMark);
 
   return <div className="modal-backdrop textlab-backdrop" role="dialog" aria-modal="true" aria-label="Textlabor: Das Lesen lesen"><section className="textlab-shell">
-    <header className="textlab-head"><button onClick={onClose}>← Zurück</button><div><small>Modus 03 · Textlabor</small><b>Das Lesen lesen</b></div><span>{done}/6 Lesespuren geprüft</span></header>
-    <div className="textlab-intro"><span className="kicker">Genau lesen · schrittweise deuten</span><h2>Wie wird aus<br/><em>Buchstaben Bedeutung?</em></h2><p>Zwei Lernwege im Roman werden selbst zum Gegenstand des Lesens: Heidis Weg von der fremden Pflicht zur inneren Bilderwelt und Peters Weg vom Widerstand zum Lesen für andere.</p></div>
-    <div className="reader-switch" role="tablist" aria-label="Leseweg wählen"><button role="tab" aria-selected={reader==='Heidi'} className={reader==='Heidi'?'active':''} onClick={()=>changeReader('Heidi')}><small>Leseweg A</small>Heidi</button><button role="tab" aria-selected={reader==='Peter'} className={reader==='Peter'?'active':''} onClick={()=>changeReader('Peter')}><small>Leseweg B</small>Peter</button></div>
-    <div className="textlab-layout"><aside className="passage-rail"><small>{reader}s Leseweg</small>{passages.map((item,index)=><button aria-current={activeId===item.id?'step':undefined} className={activeId===item.id?'active':''} onClick={()=>setActiveId(item.id)} key={item.id}><span>0{index+1}</span><div><small>{item.phase}</small><b>{item.title}</b></div><i>{state.entries[item.id]?.interpretation?'●':'○'}</i></button>)}<div className="lab-method"><b>Die Lesebewegung</b><span>1 · markieren</span><span>2 · beobachten</span><span>3 · deuten</span><span>4 · gegenprüfen</span></div></aside>
-      <div className="lab-bench"><header><div><small>{active.phase} · {active.chapter}</small><h3>{active.title}</h3></div><span>{active.pdfPages}</span></header><p className="edition-note">Wortlaut der bereitgestellten Ausgabe; die Markierung verändert den Text nicht.</p><div className="passage-text">{active.sentences.map((sentence,index)=><button aria-pressed={entry.marks.includes(index)} className={entry.marks.includes(index)?'marked':''} onClick={()=>toggleMark(index)} key={index}><span>{String(index+1).padStart(2,'0')}</span>{sentence}</button>)}</div><div className="text-lenses"><small>Textlupe</small>{active.lenses.map(lens=><span key={lens}>{lens}</span>)}</div><div className="reading-steps"><label><span>01 · Beobachtung</span><small>Nur beschreiben: Welche Wörter, Gegensätze, Wiederholungen oder Erzählzeichen fallen auf?</small><textarea value={entry.observation} onChange={event=>update({observation:event.target.value})} placeholder="Im Wortlaut fällt auf …"/></label><label><span>02 · Deutungshypothese</span><small>Aus der Beobachtung folgern: Was zeigt die Passage über diesen Leseprozess?</small><textarea value={entry.interpretation} onChange={event=>update({interpretation:event.target.value})} placeholder="Daraus lässt sich deuten …"/></label><label><span>03 · Gegenprobe</span><small>Die eigene Deutung begrenzen: Welcher Satz passt nur teilweise oder eröffnet eine andere Lesart?</small><textarea value={entry.check} onChange={event=>update({check:event.target.value})} placeholder="Meine Deutung reicht nicht ganz aus, weil …"/></label></div></div>
-    </div>
-    <section className="reading-comparison"><span className="kicker">Beide Lesewege zusammendenken</span><h2>Heidi liest anders. Peter auch.</h2><p>Der Vergleich trennt Beobachtung von vorschnellem Urteil: Nicht nur das Ergebnis, sondern Motivation, Beziehung, Methode und Wirkung des Lesens werden sichtbar.</p><div>{comparisonDimensions.map(dimension=><label key={dimension}><span>{dimension}</span><textarea value={state.comparison[dimension]||''} onChange={event=>updateComparison(dimension,event.target.value)} placeholder="Heidi … / Peter …"/></label>)}</div></section>
+    <header className="textlab-head"><button onClick={onClose}>← Zurück</button><div><small>Modus 03 · Textlabor</small><b>Das Lesen lesen</b></div><span>{view==='demo'?'Erklärbeispiel':`${done}/6 Lesespuren geprüft`}</span></header>
+    {view==='demo'?<Demo onDone={()=>setView('lab')}/>:<>
+      <div className="textlab-intro"><span className="kicker">Genau lesen · mit Sofortfeedback</span><h2>Eine Textspur.<br/><em>Ein Schritt nach dem anderen.</em></h2><p>Du wählst, beobachtest, deutest und prüfst. Nach jedem kleinen Schritt zeigt dir das Labor, was bereits trägt und woran du als Nächstes weiterarbeiten kannst.</p><button className="watch-demo" onClick={()=>setView('demo')}>▶ Erklärbeispiel nochmals ansehen</button></div>
+      <div className="reader-switch" role="tablist" aria-label="Leseweg wählen"><button role="tab" aria-selected={reader==='Heidi'} className={reader==='Heidi'?'active':''} onClick={()=>changeReader('Heidi')}><small>Leseweg A</small>Heidi</button><button role="tab" aria-selected={reader==='Peter'} className={reader==='Peter'?'active':''} onClick={()=>changeReader('Peter')}><small>Leseweg B</small>Peter</button></div>
+      <div className="textlab-layout"><aside className="passage-rail"><small>{reader}s Leseweg</small>{passages.map((item,index)=><button aria-current={activeId===item.id?'step':undefined} className={activeId===item.id?'active':''} onClick={()=>changePassage(item.id)} key={item.id}><span>0{index+1}</span><div><small>{item.phase}</small><b>{item.title}</b></div><i>{isComplete(item.id)?'●':'○'}</i></button>)}<div className="lab-method"><b>Deine sechs Schritte</b>{steps.map((step,index)=><span className={index===microStep?'active':''} key={step}>{index+1} · {step}</span>)}</div></aside>
+        <div className="lab-bench"><header><div><small>{active.phase} · {active.chapter}</small><h3>{active.title}</h3></div><span>{active.pdfPages}</span></header><p className="edition-note">Wortlaut der bereitgestellten Ausgabe; die Markierung verändert den Text nicht.</p>
+          <nav className="micro-nav" aria-label="Arbeitsschritte">{steps.map((label,index)=><button key={label} className={index===microStep?'active':index<microStep?'visited':''} onClick={()=>setMicroStep(index)} aria-current={index===microStep?'step':undefined}><i>{index<microStep?'✓':index+1}</i><span>{label}</span></button>)}</nav>
+          {microStep===0&&<section className="micro-card"><header><span>01</span><div><small>Orientieren</small><h4>Welcher Satz trägt die stärkste Spur?</h4></div></header><p>Lies alle Sätze. Wähle genau einen, an dem du deine Untersuchung beginnen möchtest.</p><div className="passage-text select-one">{active.sentences.map((sentence,index)=><button aria-pressed={entry.marks.includes(index)} className={entry.marks.includes(index)?'marked':''} onClick={()=>update({marks:[index],counterMark:entry.counterMark===index?null:entry.counterMark})} key={index}><span>{String(index+1).padStart(2,'0')}</span>{sentence}</button>)}</div><Feedback result={entry.marks.length===1?['ready','Ein Belegsatz ist gewählt. Im nächsten Schritt untersuchst du ein sprachliches Signal.']:['pause','Noch ist kein Satz gewählt. Klicke auf den Satz, der dir für den Leseprozess besonders wichtig erscheint.']}/><button className="micro-next" disabled={entry.marks.length!==1} onClick={next}>Weiter zum Textsignal →</button></section>}
+          {microStep===1&&<section className="micro-card"><header><span>02</span><div><small>Erkennen</small><h4>{guide.question}</h4></div></header><p>Wähle die Beobachtung, die sich direkt am Wortlaut prüfen lässt.</p><div className="checkpoint-options">{guide.options.map(option=><button aria-pressed={entry.signalChoice===option.id} className={entry.signalChoice===option.id?(option.id===guide.answer?'correct':'retry'):''} onClick={()=>update({signalChoice:option.id})} key={option.id}>{option.label}</button>)}</div>{entry.signalChoice?<Feedback result={[entry.signalChoice===guide.answer?'ready':'next',guide.options.find(option=>option.id===entry.signalChoice)!.feedback]}/>:<Feedback result={['pause','Noch keine Auswahl. Vergleiche die drei Aussagen genau mit der Passage.']}/>}<button className="micro-next" disabled={entry.signalChoice!==guide.answer} onClick={next}>Weiter zur eigenen Beobachtung →</button></section>}
+          {microStep===2&&<section className="micro-card"><header><span>03</span><div><small>Beschreiben</small><h4>Was fällt im Wortlaut auf?</h4></div></header><p>Noch nicht deuten. Beschreibe das Textsignal und zitiere ein kurzes Wort oder eine Wendung.</p><div className="text-lenses"><small>Textlupen als Suchhilfe</small>{active.lenses.map(lens=><span key={lens}>{lens}</span>)}</div><textarea value={entry.observation} onChange={event=>update({observation:event.target.value})} placeholder="Im Satz fällt die Wendung «…» auf. Sie wird …"/><Feedback result={observationResult}/><button className="micro-next" disabled={observationResult[0]!=='ready'} onClick={next}>Weiter zur Deutung →</button></section>}
+          {microStep===3&&<section className="micro-card"><header><span>04</span><div><small>Verknüpfen</small><h4>Was zeigt deine Beobachtung?</h4></div></header><div className="evidence-carry"><small>Deine Beobachtung</small><p>{entry.observation||'Noch keine Beobachtung formuliert.'}</p></div><p>Formuliere eine vorsichtige Deutung. Erkläre ausdrücklich, wie dein Textsignal mit dem Leseprozess zusammenhängt.</p><textarea value={entry.interpretation} onChange={event=>update({interpretation:event.target.value})} placeholder="Die Wendung zeigt, dass …, weil …"/><Feedback result={interpretationResult}/><button className="micro-next" disabled={interpretationResult[0]!=='ready'} onClick={next}>Weiter zur Gegenprobe →</button></section>}
+          {microStep===4&&<section className="micro-card"><header><span>05</span><div><small>Differenzieren</small><h4>Hält deine Deutung dem restlichen Text stand?</h4></div></header><p>Wähle einen anderen Satz. Prüfe, ob er deine Deutung bestätigt, ergänzt oder begrenzt.</p><div className="counter-sentences">{active.sentences.map((sentence,index)=><button disabled={entry.marks.includes(index)} aria-pressed={entry.counterMark===index} className={entry.counterMark===index?'marked':''} onClick={()=>update({counterMark:index})} key={index}><span>{String(index+1).padStart(2,'0')}</span>{sentence}</button>)}</div><textarea value={entry.check} onChange={event=>update({check:event.target.value})} placeholder="Der zweite Satz bestätigt …, aber er zeigt zugleich …"/><Feedback result={checkResult}/><button className="micro-next" disabled={checkResult[0]!=='ready'} onClick={next}>Ergebnis ansehen →</button></section>}
+          {microStep===5&&<section className="micro-card result-card"><header><span>06</span><div><small>Lesespur abgeschlossen</small><h4>Deine Deutung hat jetzt ein Fundament.</h4></div></header><div className="result-chain"><div><small>Beleg</small><p>{active.sentences[entry.marks[0]]||'–'}</p></div><div><small>Beobachtung</small><p>{entry.observation||'–'}</p></div><div><small>Deutung</small><p>{entry.interpretation||'–'}</p></div><div><small>Gegenprobe</small><p>{entry.check||'–'}</p></div></div><Feedback result={isComplete(activeId)?['ready','Diese Lesespur ist vollständig. Wechsle zur nächsten Passage oder vergleiche beide Lesewege.']:['next','Ein früherer Schritt ist noch nicht vollständig. Nutze die Schrittnavigation, um ihn zu ergänzen.']}/></section>}
+          <p className="feedback-disclaimer">Das Sofortfeedback prüft Aufbau und Textbezug – nicht, ob nur eine einzige Deutung möglich ist.</p>
+        </div>
+      </div>
+      <section className="reading-comparison"><span className="kicker">Beide Lesewege zusammendenken</span><h2>Heidi liest anders. Peter auch.</h2><p>Der Vergleich trennt Beobachtung von vorschnellem Urteil: Nicht nur das Ergebnis, sondern Motivation, Beziehung, Methode und Wirkung des Lesens werden sichtbar.</p><div>{comparisonDimensions.map(dimension=><label key={dimension}><span>{dimension}</span><textarea value={state.comparison[dimension]||''} onChange={event=>updateComparison(dimension,event.target.value)} placeholder="Heidi … / Peter …"/></label>)}</div></section>
+    </>}
   </section></div>
 }

@@ -11,6 +11,7 @@ const teacherGate = await readFile(new URL('../app/TeacherGate.tsx', import.meta
 const teacherAuth = await readFile(new URL('../app/api/teacher-auth/route.ts', import.meta.url), 'utf8');
 const textLab = await readFile(new URL('../app/TextLab.tsx', import.meta.url), 'utf8');
 const textLabData = await readFile(new URL('../app/textLabData.ts', import.meta.url), 'utf8');
+const textLabStyles = await readFile(new URL('../app/textlab-extra.css', import.meta.url), 'utf8');
 const hosting = JSON.parse(await readFile(new URL('../.openai/hosting.json', import.meta.url), 'utf8'));
 
 test('enthält genau sechs nummerierte Diskussionsräume', () => {
@@ -58,9 +59,17 @@ test('Textlabor trainiert genaues Lesen an Heidi und Peter', () => {
   assert.ok(app.includes('Das Lesen lesen'));
   assert.equal([...textLabData.matchAll(/id:'(?:heidi|peter)-/g)].length, 6);
   for (const phrase of ['Lesen als fremde Pflicht','Ein Bild wird zum Lesemotiv','Buchstaben gewinnen Leben','«Kann nicht»','Buchstabieren, vormachen, wiederholen','Lesen bekommt einen Adressaten']) assert.ok(textLabData.includes(phrase), `Textfenster fehlt: ${phrase}`);
-  for (const step of ['Beobachtung','Deutungshypothese','Gegenprobe','Textlupe']) assert.ok(textLab.includes(step), `Leseschritt fehlt: ${step}`);
+  for (const step of ['Beobachtung','Deutung','Gegenprobe','Textlupe']) assert.ok(textLab.includes(step), `Leseschritt fehlt: ${step}`);
   assert.ok(textLab.includes('aria-pressed'));
   assert.ok(cloud.includes("saveCloudState(credentials,'textlab'"));
+});
+
+test('Textlabor modelliert und begleitet den Leseprozess kleinschrittig', () => {
+  for (const phrase of ['Animiertes Erklärbeispiel','Erfundener Übungssatz','Zuerst nur wahrnehmen','Eine vorsichtige Bedeutung bilden','Die Deutung begrenzen']) assert.ok(textLab.includes(phrase), `Erklärbeispiel fehlt: ${phrase}`);
+  for (const step of ['Belegsatz','Textsignal','Beobachtung','Deutung','Gegenprobe','Ergebnis']) assert.ok(textLab.includes(step), `Mikroschritt fehlt: ${step}`);
+  assert.ok(textLab.includes('aria-live="polite"'));
+  assert.ok(textLab.includes('Das Sofortfeedback prüft Aufbau und Textbezug'));
+  assert.ok(textLabStyles.includes('prefers-reduced-motion'));
 });
 
 test('Lehrpersonenbereich prüft das Passwort serverseitig', () => {
