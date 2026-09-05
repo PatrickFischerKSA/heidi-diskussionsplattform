@@ -33,6 +33,12 @@ test('führt Lernende schrittweise durch die Diskussion', () => {
   assert.ok(app.includes('currentStep===5'));
 });
 
+test('macht das Erkenntnispotenzial jedes Diskussionsschritts sichtbar', () => {
+  for (const phrase of ['Worum es hier wirklich geht','Entdeckungsfrage','Teste deine erste Gewissheit','untersuchbare Behauptung','blinden Fleck','belastbarer statt nur lauter','Denkbewegung sichtbar']) assert.ok(app.includes(phrase), `Denkpotenzial fehlt: ${phrase}`);
+  assert.equal([...app.matchAll(/question:'[^']+'/g)].length, 6);
+  assert.ok(app.includes('keine «richtige» Antwort erraten'));
+});
+
 test('verwendet Schweizer Rechtschreibung in zentralen UI-Texten', () => {
   assert.equal((data + app).includes('ß'), false);
   assert.ok(app.includes('schliessen') || app.includes('Schliessen'));
