@@ -34,9 +34,18 @@ test('führt Lernende schrittweise durch die Diskussion', () => {
 });
 
 test('macht das Erkenntnispotenzial jedes Diskussionsschritts sichtbar', () => {
-  for (const phrase of ['Worum es hier wirklich geht','Entdeckungsfrage','Teste deine erste Gewissheit','untersuchbare Behauptung','blinden Fleck','belastbarer statt nur lauter','Denkbewegung sichtbar']) assert.ok(app.includes(phrase), `Denkpotenzial fehlt: ${phrase}`);
-  assert.equal([...app.matchAll(/question:'[^']+'/g)].length, 6);
+  for (const phrase of ['Entdeckungsfrage','topicGuide[currentStep].title','topicGuide[currentStep].potential','topicGuide[currentStep].discovery']) assert.ok(app.includes(phrase), `Denkpotenzial fehlt: ${phrase}`);
   assert.ok(app.includes('keine «richtige» Antwort erraten'));
+});
+
+test('führt jedes Thema mit 36 spezifischen statt generischen Schritten', () => {
+  const guideSource=data.slice(data.indexOf('export const discussionGuides'));
+  for (const field of ['title','potential','discovery','action','starter','success','pending']) {
+    const values=[...guideSource.matchAll(new RegExp(`${field}:'([^']+)'`,'g'))].map(match=>match[1]);
+    assert.equal(values.length,36,`${field} ist nicht für alle 36 Schritte vorhanden`);
+    assert.equal(new Set(values).size,36,`${field} enthält wiederholte Schablonen`);
+  }
+  for (const phrase of ['Detes / des Almöhis Entscheidung','Spuk-Erklärung','Unterricht des Kandidaten','zerstörte Rollstuhl','weissen Brötchen','Klaras unmittelbaren Schutz']) assert.ok(guideSource.includes(phrase),`Themenspezifische Führung fehlt: ${phrase}`);
 });
 
 test('verwendet Schweizer Rechtschreibung in zentralen UI-Texten', () => {
