@@ -18,6 +18,9 @@ Eine interaktive, textnahe Diskussionsplattform zu Johanna Spyris *Heidi* für d
 - Clara schreibt, Peter spricht, Heidi kann beide Formen verwenden; Sprachnachrichten werden datensparsam aus dem selbst verfassten Text vorgelesen
 - «Der Faden hört leise mit»: Nach jeweils drei Beiträgen verbindet eine knappe Randstimme zwei Themen, ohne Frage, Auftrag, Bewertung oder Aufforderung
 - diskrete Reaktionen von Grossmama, Fräulein Rottenmeier, Dete, Herr Sesemann und Almöhi; Grossmama trägt die meisten Verbindungen
+- Textlabor «Das Lesen lesen» mit sechs kurzen Textfenstern zu Heidis und Peters Lesewegen
+- genaue Lektüre durch Satzmarkierung, Textlupe, Beobachtung, Deutungshypothese und Gegenprobe
+- vergleichende Auswertung nach Motivation, Beziehung, Methode, Verstehen und Wirkung des Lesens
 
 ## Lokal starten
 
@@ -66,7 +69,7 @@ Die Sites-Konfiguration bindet D1 unter `DB` ein. Das Schema liegt in `db/schema
 npm run db:generate
 ```
 
-Die API unter `/api/learning-room` erstellt geschützte Lernräume, synchronisiert Lernstände und speichert die von Schüler*innen verfasste Figurenpost in `correspondence_messages`. Jeder Raum erhält eine zufällige Raum-ID und einen 192-Bit-Zugangsschlüssel. In D1 wird nur dessen SHA-256-Prüfwert gespeichert. Abfragen verwenden gebundene Parameter; Figurenformate, Eingaben und Nutzlastgrössen werden serverseitig geprüft.
+Die API unter `/api/learning-room` erstellt geschützte Lernräume, synchronisiert die Lernstände der Diskussionsräume und des Textlabors und speichert die von Schüler*innen verfasste Figurenpost in `correspondence_messages`. Jeder Raum erhält eine zufällige Raum-ID und einen 192-Bit-Zugangsschlüssel. In D1 wird nur dessen SHA-256-Prüfwert gespeichert. Abfragen verwenden gebundene Parameter; Figurenformate, Eingaben und Nutzlastgrössen werden serverseitig geprüft.
 
 ## Datenschutz und Speicherung
 
@@ -75,4 +78,4 @@ Das Passwort des Lehrpersonenbereichs liegt ausschliesslich als geheime Hosting-
 
 ## Textgrundlage
 
-Johanna Spyri, *Heidi. Vollständige Ausgabe. Erster und Zweiter Teil*. Die Plattform verwendet Kapitel- und Situationsverweise statt längerer Textzitate. Moderne Begriffe werden ausdrücklich als heutige Deutungsangebote behandelt.
+Johanna Spyri, *Heidi. Vollständige Ausgabe. Erster und Zweiter Teil*. Die Plattform verwendet überwiegend Kapitel- und Situationsverweise. Das Textlabor enthält klar abgegrenzte, kurze Passagen im Wortlaut der bereitgestellten Ausgabe. Moderne Begriffe werden ausdrücklich als heutige Deutungsangebote behandelt.

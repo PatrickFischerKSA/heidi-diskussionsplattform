@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CloudCredentials, createCloudRoom, getCloudCredentials, loadCloudRoom, saveCloudState, setCloudCredentials } from './cloud';
 
-type Props={works:unknown;onRestore:(debates:unknown)=>void;onClose:()=>void};
+type Props={works:unknown;onRestore:(debates:unknown,textlab:unknown)=>void;onClose:()=>void};
 
 export default function CloudWorkspace({works,onRestore,onClose}:Props){
   const [credentials,setCredentials]=useState<CloudCredentials|null>(()=>getCloudCredentials());
@@ -14,9 +14,10 @@ export default function CloudWorkspace({works,onRestore,onClose}:Props){
   const [busy,setBusy]=useState(false);
 
   useEffect(()=>{if(!credentials)return;loadCloudRoom(credentials).then(()=>setStatus('Verbunden – bereit zum Synchronisieren.')).catch(()=>setStatus('Der gespeicherte Lernraum konnte nicht erreicht werden.'))},[credentials]);
-  const create=async()=>{setBusy(true);try{const next=await createCloudRoom(label);setCredentials(next);setRoomId(next.roomId);setSecret(next.secret);setStatus('Lernraum angelegt. Bewahre Schlüssel und Raum-ID gemeinsam auf.');await saveCloudState(next,'debates',works)}catch(error){setStatus(error instanceof Error?error.message:'Lernraum konnte nicht angelegt werden.')}finally{setBusy(false)}};
-  const join=async()=>{setBusy(true);try{const next={roomId:roomId.trim(),secret:secret.trim(),label:'Verbundener Lernraum'};const data=await loadCloudRoom(next);next.label=data.room.label;setCloudCredentials(next);setCredentials(next);onRestore(data.states.debates?.data||{});setStatus('Cloud-Lernstand geladen und auf diesem Gerät übernommen.')}catch(error){setStatus(error instanceof Error?error.message:'Verbindung fehlgeschlagen.')}finally{setBusy(false)}};
-  const sync=async()=>{if(!credentials)return;setBusy(true);try{await saveCloudState(credentials,'debates',works);setStatus(`Sicher gespeichert · ${new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}`)}catch(error){setStatus(error instanceof Error?error.message:'Synchronisierung fehlgeschlagen.')}finally{setBusy(false)}};
+  const localTextLab=()=>{try{return JSON.parse(localStorage.getItem('denkraum-textlabor-v1')||'{"entries":{},"comparison":{}}')}catch{return {entries:{},comparison:{}}}};
+  const create=async()=>{setBusy(true);try{const next=await createCloudRoom(label);setCredentials(next);setRoomId(next.roomId);setSecret(next.secret);setStatus('Lernraum angelegt. Bewahre Schlüssel und Raum-ID gemeinsam auf.');await Promise.all([saveCloudState(next,'debates',works),saveCloudState(next,'textlab',localTextLab())])}catch(error){setStatus(error instanceof Error?error.message:'Lernraum konnte nicht angelegt werden.')}finally{setBusy(false)}};
+  const join=async()=>{setBusy(true);try{const next={roomId:roomId.trim(),secret:secret.trim(),label:'Verbundener Lernraum'};const data=await loadCloudRoom(next);next.label=data.room.label;setCloudCredentials(next);setCredentials(next);onRestore(data.states.debates?.data||{},data.states.textlab?.data||{entries:{},comparison:{}});setStatus('Cloud-Lernstand geladen und auf diesem Gerät übernommen.')}catch(error){setStatus(error instanceof Error?error.message:'Verbindung fehlgeschlagen.')}finally{setBusy(false)}};
+  const sync=async()=>{if(!credentials)return;setBusy(true);try{await Promise.all([saveCloudState(credentials,'debates',works),saveCloudState(credentials,'textlab',localTextLab())]);setStatus(`Sicher gespeichert · ${new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}`)}catch(error){setStatus(error instanceof Error?error.message:'Synchronisierung fehlgeschlagen.')}finally{setBusy(false)}};
   const disconnect=()=>{setCloudCredentials(null);setCredentials(null);setRoomId('');setSecret('');setStatus('Dieses Gerät ist nicht mehr verbunden. Die Cloud-Daten bleiben erhalten.')};
 
   return <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Cloud-Lernraum"><aside className="side-panel cloud-panel"><header><div><small>Cloudflare D1 · verschlüsselte Übertragung</small><h2>Cloud-Lernraum</h2></div><button onClick={onClose} aria-label="Schliessen">×</button></header><div className="side-scroll">
@@ -27,7 +28,7 @@ export default function CloudWorkspace({works,onRestore,onClose}:Props){
     </div>}
     {credentials&&<>
       <div className="credential-card"><small>Zugangsdaten dieses Lernraums</small><h3>{credentials.label}</h3><label>Raum-ID<code>{credentials.roomId}</code></label><label>Zugangsschlüssel<code>{credentials.secret}</code></label><p>Wer beides besitzt, kann die gespeicherten Inhalte lesen und verändern. Nicht öffentlich teilen.</p><div><button onClick={()=>navigator.clipboard?.writeText(`${credentials.roomId}\n${credentials.secret}`)}>Zugangsdaten kopieren</button><button onClick={disconnect}>Gerät trennen</button></div></div>
-      <div className="sync-card"><div><small>Lernstände</small><h3>Dieses Gerät ↔ Cloud</h3><p>Die Arbeitsstände der sechs Diskussionsräume werden hier synchronisiert. Figurenpost wird direkt beim Absenden gespeichert.</p></div><button className="primary-inline" onClick={sync} disabled={busy}>{busy?'Speichert …':'Jetzt synchronisieren'}</button></div>
+      <div className="sync-card"><div><small>Lernstände</small><h3>Dieses Gerät ↔ Cloud</h3><p>Diskussionsräume und Textlabor werden gemeinsam synchronisiert. Figurenpost wird direkt beim Absenden gespeichert.</p></div><button className="primary-inline" onClick={sync} disabled={busy}>{busy?'Speichert …':'Jetzt synchronisieren'}</button></div>
       <section className="cloud-mode-note"><span className="cloud-step">Gemeinsame Beiträge</span><h3>Die Figurenstimmen gehören den Schüler*innen</h3><p>Briefe und Sprachnachrichten entstehen ausschliesslich am gemeinsamen Posttisch im Modus «Heidi · Clara · Peter». Dieser Bereich verwaltet nur Zugang und Lernstände.</p></section>
     </>}
     <div className="security-note"><b>So werden die Daten geschützt</b><p>Der Schlüssel wird nur auf diesem Gerät gespeichert. In der Datenbank liegt davon ausschliesslich ein SHA-256-Prüfwert. Alle Anfragen werden validiert, Datenbankzugriffe sind parametrisiert und die Übertragung erfolgt über HTTPS. Beiträge sind nicht öffentlich durchsuchbar.</p></div>

@@ -4,7 +4,7 @@ type RoomRow = { id:string; label:string; created_at:string; updated_at:string }
 type StateRow = { scope:string; payload_json:string; updated_at:string };
 type ContributionRow = { id:string; alias:string; topic:string; body:string; created_at:string };
 type CorrespondenceRow = { id:string; message_kind:'student'|'reaction'; alias:string; character:string; channel:'letter'|'voice'; topic:string; body:string; created_at:string };
-const allowedScopes = new Set(['debates','letters']);
+const allowedScopes = new Set(['debates','letters','textlab']);
 const studentCharacters = new Set(['Clara','Heidi','Peter']);
 const formats:Record<string,Set<string>>={Clara:new Set(['letter']),Heidi:new Set(['letter','voice']),Peter:new Set(['voice'])};
 

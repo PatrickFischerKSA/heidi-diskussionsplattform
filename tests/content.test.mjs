@@ -9,6 +9,8 @@ const cloud = await readFile(new URL('../app/CloudWorkspace.tsx', import.meta.ur
 const route = await readFile(new URL('../app/api/learning-room/route.ts', import.meta.url), 'utf8');
 const teacherGate = await readFile(new URL('../app/TeacherGate.tsx', import.meta.url), 'utf8');
 const teacherAuth = await readFile(new URL('../app/api/teacher-auth/route.ts', import.meta.url), 'utf8');
+const textLab = await readFile(new URL('../app/TextLab.tsx', import.meta.url), 'utf8');
+const textLabData = await readFile(new URL('../app/textLabData.ts', import.meta.url), 'utf8');
 const hosting = JSON.parse(await readFile(new URL('../.openai/hosting.json', import.meta.url), 'utf8'));
 
 test('enthält genau sechs nummerierte Diskussionsräume', () => {
@@ -48,8 +50,17 @@ test('Cloud-Lernraum speichert Lernstände und Beiträge geschützt', () => {
   assert.ok(route.includes("crypto.subtle.digest('SHA-256'"));
   assert.ok(route.includes("Authorization"));
   assert.ok(route.includes('.bind('));
-  assert.ok(route.includes("allowedScopes = new Set(['debates','letters'])"));
+  assert.ok(route.includes("allowedScopes = new Set(['debates','letters','textlab'])"));
   assert.ok(route.includes('correspondence_messages'));
+});
+
+test('Textlabor trainiert genaues Lesen an Heidi und Peter', () => {
+  assert.ok(app.includes('Das Lesen lesen'));
+  assert.equal([...textLabData.matchAll(/id:'(?:heidi|peter)-/g)].length, 6);
+  for (const phrase of ['Lesen als fremde Pflicht','Ein Bild wird zum Lesemotiv','Buchstaben gewinnen Leben','«Kann nicht»','Buchstabieren, vormachen, wiederholen','Lesen bekommt einen Adressaten']) assert.ok(textLabData.includes(phrase), `Textfenster fehlt: ${phrase}`);
+  for (const step of ['Beobachtung','Deutungshypothese','Gegenprobe','Textlupe']) assert.ok(textLab.includes(step), `Leseschritt fehlt: ${step}`);
+  assert.ok(textLab.includes('aria-pressed'));
+  assert.ok(cloud.includes("saveCloudState(credentials,'textlab'"));
 });
 
 test('Lehrpersonenbereich prüft das Passwort serverseitig', () => {
