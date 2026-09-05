@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './textlab-extra.css';
+@import './figure-focus.css';
 
 :root { --ink:#1d2922; --paper:#f5f1e8; --cream:#fffdf8; --green:#244c3c; --line:rgba(29,41,34,.17); }
 * { box-sizing:border-box; }

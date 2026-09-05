@@ -13,6 +13,8 @@ const textLab = await readFile(new URL('../app/TextLab.tsx', import.meta.url), '
 const textLabData = await readFile(new URL('../app/textLabData.ts', import.meta.url), 'utf8');
 const textLabCoaching = await readFile(new URL('../app/textLabCoaching.ts', import.meta.url), 'utf8');
 const textLabStyles = await readFile(new URL('../app/textlab-extra.css', import.meta.url), 'utf8');
+const figureFocus = await readFile(new URL('../app/FigureFocus.tsx', import.meta.url), 'utf8');
+const figureFocusStyles = await readFile(new URL('../app/figure-focus.css', import.meta.url), 'utf8');
 const hosting = JSON.parse(await readFile(new URL('../.openai/hosting.json', import.meta.url), 'utf8'));
 
 test('enthält genau sechs nummerierte Diskussionsräume', () => {
@@ -129,4 +131,18 @@ test('Lehrpersonenbereich prüft das Passwort serverseitig', () => {
   assert.ok(teacherAuth.includes("name:'HMAC'"));
   assert.ok(teacherAuth.includes('HttpOnly; Secure; SameSite=Lax'));
   assert.equal((app + teacherGate + teacherAuth).includes('Heidi_Diskussion!'), false);
+});
+
+test('Figurenfokus ist ein responsives Fallatelier statt einer statischen Vergleichstabelle', () => {
+  assert.ok(app.includes('<FigureFocus onClose={close}/>'));
+  assert.equal(app.includes('className="comparison"'), false);
+  assert.equal(app.includes('Offene Urteilsfragen'), false);
+  for(const id of ['alp','frankfurt','lernen','mitsprache','gemeinschaft','veraenderung']) assert.ok(figureFocus.includes(`id:'${id}'`), `Konfliktfall fehlt: ${id}`);
+  for(const interaction of ['aria-expanded={open}','type="range"','aria-pressed','localStorage.setItem','work.probe===index','verdictReady']) assert.ok(figureFocus.includes(interaction), `Interaktion fehlt: ${interaction}`);
+  for(const phrase of ['Die Übergabe','Der Frankfurter Vorschlag','Schule und Lernen','Heidis Stimme','Nähe zur Gemeinschaft','Wer verändert sich?']) assert.ok(figureFocus.includes(phrase), `Fallspezifische Führung fehlt: ${phrase}`);
+  assert.equal([...figureFocus.matchAll(/reasonLabel:'([^']+)'/g)].length,6);
+  assert.equal(figureFocus.includes('Formuliere die Wirkung dieser beiden Handlungen auf Heidi'),false);
+  assert.ok(figureFocusStyles.includes('@media(max-width:900px)'));
+  assert.ok(figureFocusStyles.includes('@media(max-width:620px)'));
+  assert.ok(figureFocusStyles.includes('grid-template-columns:1fr'));
 });

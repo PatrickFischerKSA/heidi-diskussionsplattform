@@ -6,6 +6,7 @@ import CorrespondenceMode from './CorrespondenceMode';
 import CloudWorkspace from './CloudWorkspace';
 import TeacherGate from './TeacherGate';
 import TextLab from './TextLab';
+import FigureFocus from './FigureFocus';
 
 type Work = { position:number; reason:string; questionIndex:number|null; questionResponse:string; scene:string; observation:string; interpretation:string; perspectiveResponse:string; counterResponse:string; pre:number; post:number; reflection:string; notes:string };
 const emptyWork = ():Work => ({position:50,reason:'',questionIndex:null,questionResponse:'',scene:'',observation:'',interpretation:'',perspectiveResponse:'',counterResponse:'',pre:50,post:50,reflection:'',notes:''});
@@ -110,16 +111,7 @@ export default function DebatePlatform() {
       </div>
     </section></div>}
 
-    {panel==='focus'&&<SidePanel title="Dete und Almöhi" subtitle="Wer sorgt wie für Heidi?" onClose={close}><div className="comparison"><div className="comparison-head"><b>Aspekt</b><b>Dete</b><b>Almöhi</b></div>{[
-      ['Motive','Existenz sichern; eine Stelle und Chancen vermitteln','Heidi schützen; ein selbstständiges Leben ermöglichen'],
-      ['Materielle Zwänge','Abhängig von Erwerbsarbeit und Dienststellen','Wenig Besitz, aber eigene Hütte und Tiere'],
-      ['Form der Fürsorge','Organisiert Unterbringung, entscheidet pragmatisch','Alltagsnähe, Bindung, Schutz und praktische Bildung'],
-      ['Mitsprache','Heidi wird kaum einbezogen','Viel Freiheit im Alltag, aber Grundentscheidungen allein'],
-      ['Übersehene Bedürfnisse','Bindung, Vorbereitung, emotionale Sicherheit','Schule, Gleichaltrige, Gemeinschaft'],
-      ['Bildungsverständnis','Frankfurt als gesellschaftliche Chance','Erfahrung, Beobachtung und Selbstständigkeit'],
-      ['Gemeinschaft','Mobil zwischen Arbeitsorten und Haushalten','Zunächst Rückzug; später teilweise Rückkehr'],
-      ['Entwicklung','Bleibt ambivalent zwischen Sorge und Abgabe','Verändert sich durch Heidi und übernimmt neue Pflichten'],
-    ].map(r=><div className="comparison-row" key={r[0]}>{r.map((c,i)=><span key={i}>{c}</span>)}</div>)}</div><h3>Offene Urteilsfragen</h3><ul className="judge-list">{['Ist Dete verantwortungslos, pragmatisch oder unter den Bedingungen ihrer Zeit beides?','Nutzt die Stelle in Frankfurt vor allem Heidi, Klara oder Dete?','Ist der Almöhi ein guter Lernbegleiter oder vernachlässigt er Pflichten?','Schützt sein Rückzug Heidi oder schliesst er sie von Bildung und Gesellschaft aus?','Warum kehrt der Almöhi später teilweise in die Gemeinschaft zurück?','Welche Entscheidung hätten beide gemeinsam mit Heidi treffen können?'].map(x=><li key={x}>{x}</li>)}</ul></SidePanel>}
+    {panel==='focus'&&<FigureFocus onClose={close}/>}
     {panel==='glossary'&&<SidePanel title="Glossar" subtitle="Heutige Analysebegriffe – einfach erklärt" onClose={close}><p className="panel-note">Diese Begriffe helfen bei einer heutigen Deutung. Sie werden Johanna Spyri nicht ohne Beleg als Absicht zugeschrieben.</p><dl className="glossary">{glossary.map(([a,b])=><div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl></SidePanel>}
     {panel==='teacher'&&<SidePanel title="Lehrpersonenbereich" subtitle="Passwortgeschützte Vorbereitung" onClose={close}><TeacherGate><label>Eigene Leitfrage<textarea value={customQuestion} onChange={e=>setCustomQuestion(e.target.value)} placeholder="Zusätzliche Frage für die Lerngruppe …"/></label><label className="check"><input type="checkbox" checked={helpers} onChange={e=>setHelpers(e.target.checked)}/> Begriffshilfen für Lernende sichtbar</label><h3>Rollen zufällig zuteilen</h3><label>Namen, durch Komma oder Zeilenumbruch getrennt<textarea value={roleNames} onChange={e=>setRoleNames(e.target.value)} placeholder="Mira, Noah, Elif, Luca …"/></label><button className="primary-inline" onClick={assign}>Rollen verteilen</button>{assignments.length>0&&<ul className="assignments">{assignments.map(x=><li key={x}>{x}</li>)}</ul>}<h3>Beobachtungsbogen</h3><div className="rubric">{['Textnähe','Begründung','Reaktion auf Gegenargumente','Perspektivenübernahme','Gesprächsverhalten'].map(x=><label key={x}><span>{x}</span><select defaultValue=""><option value="">Beobachtung …</option><option>noch wenig sichtbar</option><option>teilweise sichtbar</option><option>klar sichtbar</option></select><input placeholder="Kurze Rückmeldung"/></label>)}</div><p className="panel-note">Keine automatische Notengebung. Rückmeldungen bleiben lokal auf diesem Gerät.</p></TeacherGate></SidePanel>}
     {panel==='letters'&&<CorrespondenceMode onClose={close}/>}
