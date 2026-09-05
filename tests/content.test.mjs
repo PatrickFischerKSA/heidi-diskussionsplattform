@@ -21,22 +21,28 @@ test('enthält genau sechs nummerierte Diskussionsräume', () => {
 });
 
 test('enthält die geforderten didaktischen Werkzeuge', () => {
-  for (const phrase of ['Textbeleg', 'Perspektivkarte', 'Kuratiertes Gegenargument', 'Welches Argument', 'localStorage']) {
+  for (const phrase of ['Textbeleg', 'perspective-card', 'guided-counter', 'work.reflection', 'localStorage']) {
     assert.ok(app.includes(phrase), `Fehlt: ${phrase}`);
   }
 });
 
 test('führt Lernende schrittweise durch die Diskussion', () => {
-  for (const phrase of ['Dein Auftrag','Tu jetzt:','An diesem konkreten Punkt weiterarbeiten','Dieser Gedanke trägt','Aus deinem Beitrag','Weiter zu Schritt','Deine Argumentkette']) assert.ok(app.includes(phrase), `Führung fehlt: ${phrase}`);
+  for (const phrase of ['topicGuide[0].title','topicGuide[1].title','topicGuide[2].title','topicGuide[3].title','topicGuide[4].title','topicGuide[5].title','nextLabel']) assert.ok(app.includes(phrase), `Führung fehlt: ${phrase}`);
   for (const field of ['questionResponse','perspectiveResponse','counterResponse']) assert.ok(app.includes(field), `Geführtes Antwortfeld fehlt: ${field}`);
   assert.ok(app.includes('disabled={!unlocked}'));
   assert.ok(app.includes('currentStep===0'));
   assert.ok(app.includes('currentStep===5'));
 });
 
+test('verwendet in den Arbeitskarten keine wiederverwendeten Aufgaben-Versatzstücke', () => {
+  for(const phrase of ['Wo stehst du – und warum?','Welche Frage trifft deine Position?','Was zeigt eine konkrete Stelle?','Was würde diese Figur einwenden?','Was antwortest du darauf?','Was hat sich bewegt?','Tu jetzt:','Dieser Gedanke trägt','An diesem konkreten Punkt weiterarbeiten','Weiter zu Schritt']) assert.equal(app.includes(phrase),false,`Versatzstück noch vorhanden: ${phrase}`);
+  assert.ok(app.includes('const stepLabels=topicGuide.map'));
+  assert.ok(app.includes('{topicGuide[currentStep].discovery}'));
+});
+
 test('macht das Erkenntnispotenzial jedes Diskussionsschritts sichtbar', () => {
-  for (const phrase of ['Entdeckungsfrage','topicGuide[currentStep].title','topicGuide[currentStep].potential','topicGuide[currentStep].discovery']) assert.ok(app.includes(phrase), `Denkpotenzial fehlt: ${phrase}`);
-  assert.ok(app.includes('keine «richtige» Antwort erraten'));
+  for (const phrase of ['topicGuide[currentStep].title','topicGuide[currentStep].potential','topicGuide[currentStep].discovery']) assert.ok(app.includes(phrase), `Denkpotenzial fehlt: ${phrase}`);
+  assert.ok(app.includes('{topic.thesis}'));
 });
 
 test('führt jedes Thema mit 36 spezifischen statt generischen Schritten', () => {
